@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Météo équipe - 0.2.1</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌦️</text></svg>">
+  <style>
+    :root {
+      --ink: #142238;
+      --muted: #68768b;
+      --line: #dde5ef;
+      --surface: #ffffff;
+      --canvas: #f4f7fb;
+      --blue: #2f6fed;
+      --blue-dark: #1e4eb3;
+      --shadow: 0 18px 50px rgba(20, 34, 56, .10);
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    html {
+      min-height: 100%;
+      background: radial-gradient(circle at 8% 2%, #e0edff 0, transparent 30%), radial-gradient(circle at 94% 8%, #fff0d6 0, transparent 24%), var(--canvas);
+    }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .app { max-width: 1420px; margin: 0 auto; padding: 32px 24px 60px; }
+    .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.35rem); line-height: 1; letter-spacing: -.055em; font-weight: 600; }
+    .back { display: inline-flex; align-items: center; gap: 5px; margin: 0 0 14px; color: var(--muted); font-size: .75rem; font-weight: 600; letter-spacing: .02em; text-decoration: none; }
+    .back:hover { color: var(--blue); }
+    h1 .title-emoji { display: inline-block; transform: scaleX(-1); }
+    h1 .version { font-size: .85rem; font-weight: 600; letter-spacing: 0; color: var(--muted); vertical-align: baseline; }
+    .hero p { max-width: 610px; color: var(--muted); margin: 13px 0 0; line-height: 1.55; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .tab { display: inline-flex; align-items: center; gap: 8px; margin-bottom: -1px; padding: 16px 22px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font: inherit; font-size: 1.12rem; font-weight: 600; cursor: pointer; }
+    .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--blue); border-bottom-width: 6px; }
+    .tab:hover:not(:disabled) { color: var(--ink); }
+    .tab:disabled { opacity: .4; cursor: not-allowed; }
+    .tab-lock { width: 18px; height: 18px; flex-shrink: 0; display: none; }
+    .tab.is-locked .tab-lock { display: block; }
+    .tab > svg:not(.tab-lock) { width: 22px; height: 22px; flex-shrink: 0; display: block; }
+    .grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; }
+    .card { background: rgba(255,255,255,.93); border: 1px solid rgba(221,229,239,.95); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card-pad { padding: 24px; }
+    .section-title { display: flex; justify-content: space-between; align-items: start; gap: 15px; margin-bottom: 18px; }
+    h2 { font-size: 1.1rem; margin: 0; letter-spacing: -.02em; font-weight: 600; }
+    .sub { color: var(--muted); font-size: .88rem; line-height: 1.45; margin: 6px 0 0; }
+    .score-card { color: white; position: relative; overflow: hidden; min-height: 280px; }
+    .score-card::before { content: ""; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.12); top: -160px; right: -70px; }
+    .score-card::after { content: ""; position: absolute; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,.10); bottom: -120px; left: -45px; }
+    .score-card .card-pad { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
+    .score-label { opacity: .84; font-size: .95rem; font-weight: 600; letter-spacing: -.02em; }
+    .weather { display: flex; align-items: center; gap: 18px; margin: 20px 0 12px; }
+    .weather-emoji { font-size: 4.9rem; line-height: 1; filter: drop-shadow(0 6px 10px rgba(0,0,0,.15)); }
+    .weather-name { font-size: 1.65rem; font-weight: 600; letter-spacing: -.04em; }
+    .weather-desc { margin-top: 4px; opacity: .88; font-size: .92rem; line-height: 1.42; }
+    .big-score { margin-top: auto; display: flex; align-items: baseline; gap: 5px; }
+    .big-score strong { font-size: 4.7rem; line-height: .85; letter-spacing: -.07em; font-weight: 600; }
+    .big-score span { font-weight: 600; opacity: .8; }
+    .progress { height: 10px; overflow: hidden; background: rgba(255,255,255,.32); border-radius: 999px; margin-top: 20px; }
+    .progress > i { display:block; width:0; height:100%; background:white; border-radius: inherit; transition: width .35s ease; }
+    .metric-list { display: grid; gap: 13px; }
+    .metric { border: 1px solid var(--line); border-radius: 8px; padding: 15px; }
+    .metric-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .metric-name { font-weight: 600; } .metric-score { font-size: 1.15rem; font-weight: 600; color: var(--blue); }
+    .metric-desc { color: var(--muted); font-size: .79rem; margin-top: 3px; }
+    .bar { margin-top: 12px; height: 8px; background: #e9eef6; border-radius: 999px; overflow:hidden; }
+    .bar i { display: block; height: 100%; border-radius: inherit; background: #8B1A1A; transition: width .35s ease, background-color .35s ease; }
+    .wide { grid-column: 1 / -1; }
+    button { font: inherit; }
+    .btn { cursor:pointer; border: 1px solid var(--line); border-radius: 6px; padding: 10px 13px; color:var(--ink); font-size:.86rem; font-weight:600; background:white; transition: .18s ease; }
+    .btn:hover { transform: translateY(-1px); border-color:#b8c6d9; box-shadow: 0 6px 14px rgba(20,34,56,.08); }
+    .btn.primary { color:white; border-color:var(--blue); background:var(--blue); } .btn.primary:hover { background:var(--blue-dark); }
+    .btn.danger { color:#b42338; }
+    .text-link { display:inline-flex; align-items:center; gap:6px; color:var(--ink); font-size:.86rem; font-weight:600; text-decoration:none; cursor:pointer; background:none; border:0; padding:0; }
+    .text-link svg { width:18px; height:18px; flex-shrink:0; }
+    .text-link:hover { color:var(--blue); }
+    .text-link.danger { color:#b42338; }
+    .text-link.danger:hover { color:#8d2135; }
+    .text-link[aria-disabled="true"] { opacity:.4; pointer-events:none; cursor:default; }
+    input[type=file] { display:none; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:7px; }
+    table { width:100%; border-collapse: collapse; }
+    .table-wrap table { min-width: 690px; }
+    .table-wrap tbody tr:hover td { background: rgba(20, 34, 56, .10); }
+    .table-wrap tbody tr:has(.empty):hover td { background: transparent; }
+    th { padding: 12px 14px; text-align:left; font-size:.73rem; color:var(--muted); letter-spacing:.07em; text-transform:uppercase; background:#f8fafc; font-weight:600; }
+    td { padding: 12px 14px; border-top:1px solid var(--line); font-size:.9rem; }
+    td.name { font-weight:600; } td.num { font-variant-numeric: tabular-nums; font-weight:600; }
+    td.avg-score { font-size: 1.08rem; }
+    th.cell-center, td.cell-center { text-align: center; }
+    th.col-trend, td.col-trend, th.col-fit, td.col-fit { width: 1%; white-space: nowrap; padding-left: 12px; padding-right: 12px; }
+    th.col-total, td.col-total { padding-left: 32px; padding-right: 32px; }
+    th.col-actions, td.col-actions { width: 99%; text-align: right; }
+    .tag { display:inline-flex; align-items:center; padding:5px 9px; font-size:.76rem; font-weight:600; border-radius:999px; }
+    .tag.ok { color:#1b6b45; background:#e5f6ee; }
+    .tag.alert { color:#8d2135; background:#ffe7eb; }
+    .note-badge { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:28px; padding:0 8px; border-radius:999px; background:var(--tone); color:var(--on-tone, #fff); font-weight:600; font-size:.8rem; }
+    .empty { text-align:center; padding:30px; color:var(--muted); }
+    .form-status { color:var(--muted); font-size:.84rem; }
+    .btn.success { color:#fff; border-color:#1B7A3C; background:#1B7A3C; }
+    .btn.success:hover { background:#156332; }
+    .text-link.success { color:#1B7A3C; }
+    .text-link.success:hover { color:#156332; }
+    .text-link.blue { color: var(--blue); }
+    .text-link.blue:hover { color: var(--blue-dark); }
+    .json-download { margin-top: 10px; }
+    .json-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 10px; }
+    .json-actions .json-download { margin-top: 0; }
+    .settings-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .settings-actions .btn:hover { transform: none; box-shadow: none; background: #f4f7fb; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .settings-grid .table-wrap { max-height: 280px; overflow: auto; }
+    .settings-grid .table-wrap table { min-width: 0; }
+    .settings-grid .table-wrap th { position: sticky; top: 0; z-index: 1; }
+    .add-response { display:flex; align-items:center; justify-content:center; width:fit-content; margin:14px auto 0; font-size:.98rem; }
+    .row-actions { white-space: nowrap; }
+    .row-actions .text-link + .text-link { margin-left: 14px; }
+    .stack-form { display:flex; flex-direction:column; gap:18px; }
+    .stack-form .input-name { width:100%; }
+    .compact-field { display:flex; flex-direction:column; gap:5px; min-width:0; }
+    .compact-label { font-size:.7rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+    .compact-label .req { color:#c52b2b; font-weight:700; letter-spacing:0; }
+    .compact-hint { color:var(--muted); font-size:.73rem; line-height:1.25; margin-top:-2px; }
+    .input-name { width:180px; border:1px solid var(--line); border-radius:5px; padding:8px 10px; font:inherit; color:var(--ink); outline:0; }
+    .input-name:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(47,111,237,.12); }
+    .input-date { width:100%; border:1px solid var(--line); border-radius:5px; padding:8px 10px; font:inherit; color:var(--ink); outline:0; background:white; }
+    .input-date:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(47,111,237,.12); }
+    .date-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .combo { position:relative; }
+    .combo-list { position:absolute; z-index:30; left:0; right:0; top:calc(100% + 4px); margin:0; padding:6px; list-style:none; background:#fff; border:1px solid var(--line); border-radius:5px; box-shadow:var(--shadow); max-height:220px; overflow:auto; }
+    .combo-list[hidden] { display:none !important; }
+    .combo-item { display:block; width:100%; text-align:left; border:0; background:none; padding:8px 10px; border-radius:4px; cursor:pointer; font:inherit; color:var(--ink); }
+    .combo-item:hover, .combo-item.is-active { background:#eef4ff; }
+    .combo-item .combo-meta { display:block; font-size:.75rem; color:var(--muted); margin-top:2px; }
+    .person-hint { margin:6px 0 0; min-height:1.2em; font-size:.8rem; color:var(--muted); }
+    .person-hint.is-new { color:var(--blue); font-weight:600; }
+    .scale { display:flex; gap:4px; }
+    .choice { position:relative; cursor:pointer; }
+    .choice input { position:absolute; opacity:0; pointer-events:none; }
+    .choice span { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:5px; border:1.5px solid var(--tone); background:transparent; color:var(--tone); font-size:.95rem; font-weight:600; transition:.15s ease; }
+    .choice:hover span { transform:translateY(-1px); }
+    .choice input:checked + span { background:var(--tone); color:var(--on-tone, #fff); }
+    .scale-caption { margin:6px 0 0; min-height:1.3em; font-size:.75rem; font-weight:600; line-height:1.3; color:#000; }
+    .memo-grid { display:grid; grid-template-columns: 1.35fr .85fr .9fr; gap:22px; }
+    .memo-grid h3 { margin:0 0 10px; font-size:1.15rem; letter-spacing:-.02em; color:var(--ink); font-weight:600; }
+    .memo-grid p, .memo-grid li { color:var(--muted); font-size:.84rem; line-height:1.45; }
+    .memo-grid p { margin:0 0 10px; }
+    .memo-grid ul { margin:0 0 10px; padding-left:17px; }
+    .memo-grid li + li { margin-top:5px; }
+    .memo-table td, .memo-table th { padding:7px 8px; font-size:.8rem; border-top:1px solid var(--line); }
+    .memo-table th { background:#f8fafc; font-size:.68rem; }
+    .memo-table tr:first-child td, .memo-table thead th { border-top:0; }
+    .memo-note { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:4px; background:var(--tone); color:var(--on-tone, #fff); font-weight:600; font-size:.8rem; }
+    .memo-strong { color:var(--ink); font-weight:600; }
+    .period-bar { display:flex; align-items:center; gap:10px; margin-bottom:22px; flex-wrap:wrap; }
+    .period-hint { color:var(--muted); font-size:.86rem; }
+    .period-select { min-width:200px; max-width:360px; height:38px; border:1px solid var(--line); border-radius:6px; padding:0 10px; font:inherit; color:var(--ink); background:white; outline:0; }
+    .period-bar .period-select { min-width:220px; max-width:340px; height:48px; font-size:1.3rem; padding:0 14px; border-radius:6px; }
+    .period-select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(47,111,237,.12); }
+    .icon-btn { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:38px; height:38px; padding:0; border:0; background:transparent; box-shadow:none; cursor:pointer; border-radius:4px; line-height:0; }
+    .period-bar .icon-btn { width:48px; height:48px; }
+    .period-bar .icon-btn svg { width:22px; height:22px; }
+    .icon-btn:hover, .icon-btn:focus { transform:none; border:0; background:transparent; box-shadow:none; }
+    .icon-btn:disabled { opacity:.35; cursor:default; }
+    .icon-btn svg { width:20px; height:20px; display:block; }
+    .icon-add { color:#1B7A3C; }
+    .icon-trash { color:#b42338; }
+    .modal { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; }
+    .modal[hidden], .tab-panel[hidden], .icon-btn[hidden], .period-bar[hidden], .grid[hidden], .stack[hidden], select[hidden] { display:none !important; }
+    .modal-backdrop { position:absolute; inset:0; background:rgba(20,34,56,.45); }
+    .modal-dialog { position:relative; z-index:1; width:min(420px, calc(100% - 32px)); background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; }
+    .modal-dialog h2 { margin-bottom:16px; }
+    .modal-dialog .input-name { width:100%; }
+    .modal-dialog.response { width:min(480px, calc(100% - 32px)); }
+    .modal-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:18px; }
+    .stack { display: grid; gap: 22px; }
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 22px; }
+    .chart-wrap { position: relative; height: 360px; }
+    .chart-wrap.is-empty { height: auto; }
+    .chart-wrap.is-empty canvas { display: none; }
+    .trend { font-weight: 700; letter-spacing: .02em; font-size: 1.55rem; line-height: 1; }
+    .trend-up { color: #0D9900; }
+    .trend-down { color: #C52B2B; }
+    .trend-flat, .trend-none { color: #d4dbe3; font-size: 1.25rem; }
+    .trend-cell { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .delta-up { color: #0D9900; }
+    .delta-down { color: #C52B2B; }
+    .low-note { display: flex; flex-direction: column; gap: 2px; }
+    .low-note .period-ref { color: var(--muted); font-size: .78rem; font-weight: 500; }
+    .low-note .num.alert { color: #8d2135; }
+    .history { display: inline-flex; align-items: center; gap: 6px; }
+    .history > * { opacity: .42; }
+    .history > *:nth-last-child(3) { opacity: .62; }
+    .history > *:nth-last-child(2) { opacity: .8; }
+    .history > *:last-child { opacity: 1; }
+    .history-miss { color: #d4dbe3; font-weight: 600; min-width: 26px; text-align: center; }
+    @media (max-width: 860px) { .grid { grid-template-columns:1fr; } .hero { align-items:start; flex-direction:column; } .input-name { width:100%; } .memo-grid { grid-template-columns:1fr; } .period-bar { width:100%; } .period-select { flex:1; min-width:0; max-width:none; } .chart-wrap { height: 280px; } .settings-grid { grid-template-columns:1fr; } }
+    @media print { html, body { background:white; } .app { max-width:none; padding:0; } .tabs, .memo-grid, .period-bar, .modal, .add-response, #panel-fonctionnement, #panel-suivi, #panel-parametres { display:none !important; } #panel-saisies { display:block !important; } .card { box-shadow:none; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div>
+        <a class="back" href="index.html">← Boîte à outils</a>
+        <h1><span class="title-emoji" aria-hidden="true">🌦️</span> Météo d'équipe <span class="version">0.2.1</span></h1>
+        <p>Deux indicateurs simples, un suivi humain.</p>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Navigation">
+      <button type="button" class="tab" role="tab" id="tab-fonctionnement" data-tab="fonctionnement" aria-controls="panel-fonctionnement" aria-selected="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        Comment ça fonctionne
+      </button>
+      <button type="button" class="tab" role="tab" id="tab-saisies" data-tab="saisies" aria-controls="panel-saisies" aria-selected="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Saisir des notes
+      </button>
+      <button type="button" class="tab" role="tab" id="tab-suivi" data-tab="suivi" aria-controls="panel-suivi" aria-selected="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        Suivi
+        <svg class="tab-lock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      </button>
+    </nav>
+
+    <div class="period-bar">
+      <select id="periodSelect" class="period-select" aria-label="Période"></select>
+      <select id="teamSelect" class="period-select" aria-label="Équipe"></select>
+      <span id="periodHint" class="period-hint">💡Ajoutez une période depuis la boîte à outils</span>
+    </div>
+
+    <section class="tab-panel" id="panel-saisies" data-panel="saisies" role="tabpanel" aria-labelledby="tab-saisies" hidden>
+      <div class="grid" id="saisiesGrid">
+        <article class="card score-card" id="scoreCard">
+          <div class="card-pad">
+            <div class="score-label">Météo d'équipe</div>
+            <div class="weather">
+              <div id="weatherEmoji" class="weather-emoji"></div>
+              <div><div id="weatherName" class="weather-name">En attente</div><div id="weatherDesc" class="weather-desc">Saisissez des réponses pour calculer la météo de cette équipe.</div></div>
+            </div>
+            <div class="big-score"><strong id="totalScore">0</strong><span>/ <span id="maxScore">0</span> points</span></div>
+            <div class="progress"><i id="scoreProgress"></i></div>
+          </div>
+        </article>
+
+        <article class="card card-pad">
+          <div class="section-title"><div><h2>Lecture par critère</h2><p class="sub">Chaque critère est noté de 0 à 5 par personne.</p></div></div>
+          <div class="metric-list">
+            <div class="metric"><div class="metric-row"><div><div class="metric-name">🌡️ Travail & Charge</div><div class="metric-desc">Charge, pression, urgences, organisation.</div></div><div id="workScore" class="metric-score">0 / 0</div></div><div class="bar"><i id="workBar"></i></div></div>
+            <div class="metric"><div class="metric-row"><div><div class="metric-name">🔋 Moral & énergie</div><div class="metric-desc">Moral global, énergie et fatigue.</div></div><div id="moodScore" class="metric-score">0 / 0</div></div><div class="bar"><i id="moodBar"></i></div></div>
+          </div>
+        </article>
+
+        <article class="card card-pad wide">
+          <div class="section-title">
+            <div><h2>Réponses individuelles</h2><p class="sub">Données visibles uniquement pour le suivi et les échanges individuels.</p></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th class="col-fit">Signal</th><th class="col-fit">Personne</th><th class="cell-center col-fit col-total">Total</th><th class="cell-center col-fit">🌡️ Travail & Charge</th><th class="cell-center col-fit">🔋 Moral & énergie</th><th class="col-actions">Action</th></tr></thead><tbody id="dataRows"></tbody></table></div>
+          <a href="#" id="addResponse" class="text-link success add-response">Ajouter une réponse</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-suivi" data-panel="suivi" role="tabpanel" aria-labelledby="tab-suivi" hidden>
+      <div class="stack" id="suiviGrid">
+        <div class="charts-row">
+          <article class="card card-pad">
+            <div class="section-title">
+              <div>
+                <h2>Progression de l'équipe</h2>
+                <p class="sub">Score relatif en %</p>
+              </div>
+            </div>
+            <div class="chart-wrap is-empty" id="teamChartWrap">
+              <canvas id="teamChart" aria-label="Progression de l'équipe"></canvas>
+              <p class="empty" id="teamChartEmpty">Pas encore de réponses à suivre.</p>
+            </div>
+          </article>
+          <article class="card card-pad">
+            <div class="section-title">
+              <div>
+                <h2>Progression individuelle</h2>
+                <p class="sub">Score individuel sur 10</p>
+              </div>
+              <select id="peopleFilter" class="period-select" style="min-width:140px;max-width:220px" aria-label="Filtrer par personne"></select>
+            </div>
+            <div class="chart-wrap is-empty" id="peopleChartWrap">
+              <canvas id="peopleChart" aria-label="Progression individuelle"></canvas>
+              <p class="empty" id="peopleChartEmpty">Pas encore de réponses à suivre.</p>
+            </div>
+          </article>
+        </div>
+        <article class="card card-pad">
+          <div class="section-title">
+            <div>
+              <h2>Statistiques individuelles</h2>
+              <p class="sub">Une ligne par personne</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="cell-center col-trend">Tendance</th>
+                  <th>Personne</th>
+                  <th>Historique</th>
+                  <th>Moyenne</th>
+                  <th>La plus basse</th>
+                  <th>La plus haute</th>
+                </tr>
+              </thead>
+              <tbody id="trackingRows"></tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-fonctionnement" data-panel="fonctionnement" role="tabpanel" aria-labelledby="tab-fonctionnement" hidden>
+          <div class="memo-grid">
+            <article class="card card-pad">
+              <h3>Notation</h3>
+              <p>Deux questions à répondre par personne.</p>
+              <ul>
+                <li><span class="memo-strong">🌡️ Travail & Charge</span> : point de vue équipe / le travail réalisé</li>
+                <li><span class="memo-strong">🔋 Moral & énergie</span> : point de vue individuel, ressenti</li>
+              </ul>
+              <br />
+              <p>Les réponses de 0 à 5 correspondent à des éléments clairs, identifiables et factuels :</p>
+              <table class="memo-table">
+                <thead><tr><th>Note</th><th>🌡️ Travail & Charge</th><th>🔋 Moral & énergie</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="memo-note" data-note="5">5</span></td><td>Très bon : charge réaliste, climat serein</td><td>En pleine forme, énergie au top</td></tr>
+                  <tr><td><span class="memo-note" data-note="4">4</span></td><td>Bon : charge et climat maîtrisés</td><td>Plutôt en forme, moral correct</td></tr>
+                  <tr><td><span class="memo-note" data-note="3">3</span></td><td>Correct : globalement tenable, quelques pics</td><td>Ça tient : ni bien ni mal</td></tr>
+                  <tr><td><span class="memo-note" data-note="2">2</span></td><td>Lourd : ça passe, mais avec tension visible</td><td>Fatigué(e), moral en baisse</td></tr>
+                  <tr><td><span class="memo-note" data-note="1">1</span></td><td>Très lourd : difficile à tenir sur la durée</td><td>Très fatigué(e), moral fragile</td></tr>
+                  <tr><td><span class="memo-note" data-note="0">0</span></td><td>Insoutenable : charge écrasante et/ou climat très tendu</td><td>Épuisement / moral très bas</td></tr>
+                </tbody>
+              </table>
+            </article>
+            <article class="card card-pad">
+              <h3>Score et météo</h3>
+              <p>Le barème suit le nombre de réponses reçues <span class="memo-strong">(N)</span>, pas un effectif fixe. 1 membre d'équipe = 1 réponse.</p>
+              <ul>
+                <li><span class="memo-strong">Max total équipe</span> : N × 10</li>
+                <li><span class="memo-strong">Max par critère</span> : N × 5</li>
+                <li><span class="memo-strong">Score</span> : somme de toutes les notes</li>
+              </ul>
+              <p style="margin-top:12px">Paliers relatifs au score :</p>
+              <ul>
+                <li>☀️ ≥ 80 % · <span class="memo-strong">Grand soleil</span> : équipe globalement en très bonne forme, charge et moral bons.</li>
+                <li>⛅ 60 à 79 % · <span class="memo-strong">Éclaircies</span> : ça tient, mais avec des signes de fatigue ou de tension à surveiller.</li>
+                <li>🌦️ 40 à 59 % · <span class="memo-strong">Averses</span> : climat difficile, charge et/ou moral clairement dégradés.</li>
+                <li>🌧️ 20 à 39 % · <span class="memo-strong">Pluie battante</span> : situation préoccupante, risque de burn-out / désengagement. Agir rapidement.</li>
+                <li>⛈️ &lt; 20 % · <span class="memo-strong">Orage</span> : crise ouverte, équipe en grande souffrance, action immédiate requise.</li>
+              </ul>
+            </article>
+            <article class="card card-pad">
+              <h3>Alerte individuelle</h3>
+              <p>Pour un suivi plus individuel, il y a un seuil sur la somme individuelle des deux critères (2 critères, donc sur 10).</p>
+              <p>Une alerte est remontée s'il est <span class="memo-strong">inférieur à 4</span>.</p>
+              <ul>
+                <li>🟢<span class="memo-strong">4 à 10</span> : dans la norme, pas d'alerte</li>
+                <li>🔴<span class="memo-strong">≤ 3</span> : proposer un 1:1 et plan d'actions</li>
+              </ul>
+              <br />
+              <p>Remarques :</p>
+              <ul>
+                <li>Un critère bas peut être compensé par l'autre : 1 + 3 = 4, pas d'alerte, c'est possible et acceptable</li>
+                <li>Une météo d'équipe ensoleillée peut masquer une personne en difficulté</li>
+                <li>Les noms et notes individuelles restent confidentielles</li>
+                <li>Ce n'est pas un jugement ni un outil d'évaluation : c'est un signal pour prendre des actions et améliorer la situation</li>
+              </ul>
+            </article>
+          </div>
+    </section>
+
+  </main>
+
+  <div id="responseModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-dialog response" role="dialog" aria-modal="true" aria-labelledby="responseModalTitle">
+      <h2 id="responseModalTitle">Ajouter une réponse</h2>
+      <form id="responseForm" class="stack-form">
+        <div class="compact-field">
+          <label class="compact-label" for="personName">Nom <span class="req" aria-hidden="true">(*)</span></label>
+          <div class="combo">
+            <input class="input-name" id="personName" required maxlength="80" placeholder="Ex. Camille" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="personSuggest" aria-describedby="personHint">
+            <ul id="personSuggest" class="combo-list" hidden role="listbox"></ul>
+          </div>
+          <p id="personHint" class="person-hint"></p>
+        </div>
+        <div class="compact-field">
+          <span class="compact-label">🌡️ Travail & Charge <span class="req" aria-hidden="true">(*)</span></span>
+          <span class="compact-hint">Charge, pression, urgences, organisation.</span>
+          <div class="scale" id="workScale"></div>
+          <p class="scale-caption" id="workCaption"></p>
+        </div>
+        <div class="compact-field">
+          <span class="compact-label">🔋 Moral & énergie <span class="req" aria-hidden="true">(*)</span></span>
+          <span class="compact-hint">Moral global, énergie et fatigue.</span>
+          <div class="scale" id="moodScale"></div>
+          <p class="scale-caption" id="moodCaption"></p>
+        </div>
+        <p class="form-status">⚠️ Une réponse par personne remplace la précédente dans cette période.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-close-modal>Annuler</button>
+          <button class="btn success" id="responseSubmit" type="submit">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+  <script src="store.js"></script>
+  <script>
+    const NOTE_PALETTE = ['#000000', '#C52B2B', '#ff9253', '#FFE868', '#A7D61A', '#0D9900'];
+    function onTone(hex) {
+      const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 0.55 ? '#142238' : '#ffffff';
+    }
+    function hexToRgba(hex, alpha) {
+      const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    const yScaleBandsPlugin = {
+      id: 'yScaleBands',
+      beforeDraw(chart) {
+        const cfg = chart.options.plugins && chart.options.plugins.yScaleBands;
+        const cap = cfg && cfg.cap;
+        const { ctx, chartArea, scales } = chart;
+        const y = scales.y;
+        if (!cap || !chartArea || !y) return;
+        const n = NOTE_PALETTE.length;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+        ctx.clip();
+        for (let i = 0; i < n; i++) {
+          const top = y.getPixelForValue(((i + 1) / n) * cap);
+          const bottom = y.getPixelForValue((i / n) * cap);
+          const height = bottom - top;
+          if (height <= 0) continue;
+          ctx.fillStyle = hexToRgba(NOTE_PALETTE[i], 0.25);
+          ctx.fillRect(chartArea.left, top, chartArea.right - chartArea.left, height);
+        }
+        ctx.restore();
+      }
+    };
+    const errorBarsPlugin = {
+      id: 'errorBars',
+      afterDatasetsDraw(chart) {
+        const cfg = chart.options.plugins && chart.options.plugins.errorBars;
+        if (!cfg || !cfg.ranges) return;
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data) return;
+        ctx.save();
+        ctx.strokeStyle = cfg.color || 'rgba(47, 111, 237, .6)';
+        ctx.lineWidth = cfg.lineWidth || 2;
+        const capW = cfg.capWidth || 6;
+        meta.data.forEach((point, i) => {
+          const range = cfg.ranges[i];
+          if (!range) return;
+          const x = point.x;
+          const yScale = chart.scales.y;
+          const yMin = yScale.getPixelForValue(range.min);
+          const yMax = yScale.getPixelForValue(range.max);
+          ctx.beginPath();
+          ctx.moveTo(x, yMin);
+          ctx.lineTo(x, yMax);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - capW, yMin);
+          ctx.lineTo(x + capW, yMin);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - capW, yMax);
+          ctx.lineTo(x + capW, yMax);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+    };
+    function teamPeriodMinMax(periodId) {
+      const notes = notesForSelectedTeam(periodId);
+      if (notes.length < 2) return null;
+      const scores = notes.map(r => ((r.work + r.mood) / 10) * 100);
+      return { min: Math.round(Math.min(...scores) * 10) / 10, max: Math.round(Math.max(...scores) * 10) / 10 };
+    }
+    const SCALE = [
+      { value: '0', label: 'Insoutenable', work: 'Insoutenable : charge écrasante et/ou climat très tendu', mood: 'Épuisement / moral très bas', color: NOTE_PALETTE[0] },
+      { value: '1', label: 'Très lourd', work: 'Très lourd : difficile à tenir sur la durée', mood: 'Très fatigué(e), moral fragile', color: NOTE_PALETTE[1] },
+      { value: '2', label: 'Lourd', work: 'Lourd : ça passe, mais avec tension visible', mood: 'Fatigué(e), moral en baisse', color: NOTE_PALETTE[2] },
+      { value: '3', label: 'Correct', work: 'Correct : globalement tenable, quelques pics', mood: 'Ça tient : ni bien ni mal, dans la norme', color: NOTE_PALETTE[3] },
+      { value: '4', label: 'Bon', work: 'Bon : charge et climat maîtrisés', mood: 'Plutôt en forme, moral correct à bon', color: NOTE_PALETTE[4] },
+      { value: '5', label: 'Très bon', work: 'Très bon : charge réaliste, climat serein', mood: 'En pleine forme, moral et énergie au top', color: NOTE_PALETTE[5] }
+    ];
+    const formatDay = LeadStore.formatDay;
+    const personCoversPeriod = LeadStore.personCoversPeriod;
+    function foldName(value) {
+      return String(value || '').toLocaleLowerCase('fr').normalize('NFD').replace(/\p{M}/gu, '').trim();
+    }
+    let store = LeadStore.load();
+    function saveStore() { LeadStore.save(store); }
+    let currentTab = 'fonctionnement';
+    const OPEN_TABS = new Set(['fonctionnement', 'saisies']);
+    function currentPeriod() {
+      return store.periods.find(p => p.id === store.selectedPeriodId) || null;
+    }
+    function currentTeam() {
+      return store.teams.find(t => t.id === store.selectedTeamId) || null;
+    }
+    function currentNotes() {
+      if (!store.selectedPeriodId || !store.selectedTeamId) return [];
+      return store.weather.notes.filter(r => {
+        if (r.periodId !== store.selectedPeriodId) return false;
+        const person = personById(r.personId);
+        return person && person.teamId === store.selectedTeamId;
+      });
+    }
+    function personById(id) {
+      return store.people.find(p => p.id === id) || null;
+    }
+    function sortedTeams() {
+      return [...store.teams].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+    }
+    function tenureLabel(person) {
+      if (!person.startDate && !person.endDate) return '';
+      if (person.startDate && person.endDate) return `${formatDay(person.startDate)} → ${formatDay(person.endDate)}`;
+      if (person.startDate) return `Depuis ${formatDay(person.startDate)}`;
+      return `Jusqu'au ${formatDay(person.endDate)}`;
+    }
+    const PEOPLE_COLORS = ['#2f6fed', '#e85d04', '#2a9d8f', '#9b5de5', '#d62828', '#0077b6', '#f4a261', '#6a994e', '#c1121f', '#023e8a', '#bb3e03', '#8338ec'];
+    if (typeof Chart !== 'undefined') {
+      Chart.defaults.font.family = 'Inter, ui-sans-serif, system-ui, sans-serif';
+      Chart.defaults.color = '#68768b';
+    }
+    let trackingCharts = { team: null, people: null };
+    let peopleFilterKey = '__all__';
+    function colorForId(id) {
+      let hash = 0;
+      const key = String(id);
+      for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+      return PEOPLE_COLORS[hash % PEOPLE_COLORS.length];
+    }
+    function sortedPeople() {
+      return [...store.people].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+    }
+    function peopleWithNotes() {
+      const ids = new Set(store.weather.notes.map(n => n.personId));
+      return sortedPeople().filter(p => p.teamId === store.selectedTeamId && ids.has(p.id));
+    }
+    function notesForSelectedTeam(periodId) {
+      if (!store.selectedTeamId) return [];
+      return store.weather.notes.filter(r => {
+        if (periodId && r.periodId !== periodId) return false;
+        const person = personById(r.personId);
+        return person && person.teamId === store.selectedTeamId;
+      });
+    }
+    function noteFor(periodId, personId) {
+      return store.weather.notes.find(r => r.periodId === periodId && r.personId === personId) || null;
+    }
+    function teamPeriodScore(periodId) {
+      const notes = notesForSelectedTeam(periodId);
+      if (!notes.length) return null;
+      const total = notes.reduce((s, r) => s + r.work + r.mood, 0);
+      const max = notes.length * 10;
+      return { total, max, pct: (total / max) * 100, count: notes.length };
+    }
+    function personSeries(personId) {
+      return store.periods.map(period => {
+        const r = noteFor(period.id, personId);
+        return r ? { period, score: r.work + r.mood } : { period, score: null };
+      });
+    }
+    function chartYBounds(values, cap, headroom) {
+      const nums = values.filter(v => typeof v === 'number' && Number.isFinite(v));
+      if (!nums.length) return { min: 0, max: cap };
+      const dataMin = Math.min(...nums);
+      const dataMax = Math.max(...nums);
+      const span = dataMax - dataMin;
+      const pad = span === 0
+        ? (cap > 20 ? 2 : 0.5)
+        : Math.max(span * 0.08, cap > 20 ? 0.5 : 0.1);
+      let min = Math.max(0, dataMin - pad);
+      let max = dataMax;
+      if (headroom) {
+        const sideGap = span === 0
+          ? (cap > 20 ? 12 : 0.8)
+          : Math.max(span * 0.35, cap > 20 ? 12 : 0.8);
+        min = Math.max(0, dataMin - sideGap);
+        max = dataMax + sideGap;
+      }
+      if (cap > 20) {
+        min = Math.floor(min);
+        max = Math.ceil(max);
+      }
+      if (max <= min) max = Math.min(cap, min + (cap > 20 ? 1 : 0.5));
+      max = Math.min(cap, max);
+      return { min, max };
+    }
+    function destroyTrackingCharts() {
+      Object.keys(trackingCharts).forEach(key => {
+        if (!trackingCharts[key]) return;
+        trackingCharts[key].destroy();
+        trackingCharts[key] = null;
+      });
+    }
+    function trackingEmptyMessage() {
+      if (!notesForSelectedTeam().length) return 'Pas encore de réponses à suivre pour cette équipe.';
+      if (typeof Chart === 'undefined') return "Chart.js n'a pas pu être chargé. Vérifiez la connexion, puis rechargez la page.";
+      return '';
+    }
+    function renderTrackingTable() {
+      const tbody = document.getElementById('trackingRows');
+      const people = peopleWithNotes();
+      if (!people.length) {
+        tbody.innerHTML = '<tr><td class="empty" colspan="6">Aucune statistique pour cette équipe : saisissez des réponses sur au moins une période.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = people.map(person => {
+        const series = personSeries(person.id).filter(point => point.score !== null);
+        const last = series[series.length - 1];
+        const prev = series.length >= 2 ? series[series.length - 2] : null;
+        let trend = 'none';
+        let trendLabel = '—';
+        let deltaHtml = '';
+        if (prev) {
+          const delta = last.score - prev.score;
+          if (delta > 0) {
+            trend = 'up';
+            trendLabel = '▲';
+            deltaHtml = `<span class="num delta-up">+${delta}</span>`;
+          } else if (delta < 0) {
+            trend = 'down';
+            trendLabel = '▼';
+            deltaHtml = `<span class="num delta-down">${delta}</span>`;
+          }
+        }
+        const avg = series.reduce((sum, point) => sum + point.score, 0) / series.length;
+        const avgLabel = avg.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const minScore = Math.min(...series.map(point => point.score));
+        const minPeriod = series.find(point => point.score === minScore).period;
+        const maxScore = Math.max(...series.map(point => point.score));
+        const maxPeriod = [...series].reverse().find(point => point.score === maxScore).period;
+        const lowClass = minScore <= 3 ? 'alert' : '';
+        const recent = personSeries(person.id).slice(-5);
+        const historyHtml = recent.map(point => {
+          if (point.score === null) return `<span class="history-miss" title="${escapeHtml(point.period.label)}">—</span>`;
+          const tone = barColor(point.score, 10);
+          return `<span class="note-badge" style="--tone:${tone};--on-tone:${onTone(tone)}" title="${escapeHtml(point.period.label)}">${point.score}</span>`;
+        }).join('');
+        return `<tr>
+          <td class="cell-center col-trend"><span class="trend-cell" title="${prev ? 'Par rapport à la période précédente renseignée' : 'Pas encore de période précédente'}">${deltaHtml}<span class="trend trend-${trend}">${trendLabel}</span></span></td>
+          <td class="name">${escapeHtml(person.name)}</td>
+          <td><div class="history">${historyHtml}</div></td>
+          <td class="num avg-score">${avgLabel}</td>
+          <td><div class="low-note"><span class="num ${lowClass}">${minScore}</span><span class="period-ref">${escapeHtml(minPeriod.label)}</span></div></td>
+          <td><div class="low-note"><span class="num">${maxScore}</span><span class="period-ref">${escapeHtml(maxPeriod.label)}</span></div></td>
+        </tr>`;
+      }).join('');
+    }
+    function renderTrackingChart(kind) {
+      const isTeam = kind === 'team';
+      const wrap = document.getElementById(isTeam ? 'teamChartWrap' : 'peopleChartWrap');
+      const empty = document.getElementById(isTeam ? 'teamChartEmpty' : 'peopleChartEmpty');
+      const canvas = document.getElementById(isTeam ? 'teamChart' : 'peopleChart');
+      if (trackingCharts[kind]) {
+        trackingCharts[kind].destroy();
+        trackingCharts[kind] = null;
+      }
+      const message = trackingEmptyMessage();
+      if (message) {
+        wrap.classList.add('is-empty');
+        empty.hidden = false;
+        empty.textContent = message;
+        return;
+      }
+      wrap.classList.remove('is-empty');
+      empty.hidden = true;
+      const labels = store.periods.map(p => p.label);
+      const datasets = isTeam
+        ? [{
+            label: 'Équipe',
+            data: store.periods.map(p => {
+              const score = teamPeriodScore(p.id);
+              return score ? Math.round(score.pct * 10) / 10 : null;
+            }),
+            borderColor: '#2f6fed',
+            backgroundColor: 'rgba(47, 111, 237, .12)',
+            fill: false,
+            tension: 0,
+            spanGaps: false,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            borderWidth: 2.5
+          }]
+        : peopleWithNotes()
+            .filter(person => peopleFilterKey === '__all__' || person.id === peopleFilterKey)
+            .map(person => {
+            const color = colorForId(person.id);
+            return {
+              label: person.name,
+              data: personSeries(person.id).map(point => point.score),
+              borderColor: color,
+              backgroundColor: color,
+              fill: false,
+              tension: 0,
+              spanGaps: false,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              borderWidth: 2
+            };
+          });
+      const cap = isTeam ? 100 : 10;
+      const errorRanges = isTeam ? store.periods.map(p => teamPeriodMinMax(p.id)) : null;
+      const allValues = datasets.flatMap(set => set.data);
+      if (errorRanges) errorRanges.forEach(r => { if (r) { allValues.push(r.min, r.max); } });
+      const yBounds = chartYBounds(allValues, cap, isTeam);
+      trackingCharts[kind] = new Chart(canvas, {
+        type: 'line',
+        data: { labels, datasets },
+        plugins: [yScaleBandsPlugin, errorBarsPlugin],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            yScaleBands: { cap },
+            errorBars: isTeam ? { ranges: errorRanges, color: 'rgba(47, 111, 237, .5)', lineWidth: 1.5, capWidth: 5 } : false,
+            legend: {
+              display: !isTeam,
+              position: 'bottom',
+              labels: { boxWidth: 12, usePointStyle: true, padding: 16 }
+            },
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  if (ctx.parsed.y === null || Number.isNaN(ctx.parsed.y)) return '';
+                  if (isTeam) {
+                    const score = teamPeriodScore(store.periods[ctx.dataIndex].id);
+                    if (!score) return '';
+                    const range = teamPeriodMinMax(store.periods[ctx.dataIndex].id);
+                    const rangeStr = range ? `  ·  min ${range.min} % — max ${range.max} %` : '';
+                    return ` ${Math.round(score.pct)} %  ·  ${score.total} / ${score.max}  (${score.count} rép.)${rangeStr}`;
+                  }
+                  return ` ${ctx.dataset.label}  ·  ${ctx.parsed.y} / 10`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#eef2f7' },
+              ticks: { color: '#68768b', maxRotation: 40, minRotation: 0, autoSkip: true }
+            },
+            y: isTeam
+              ? { min: yBounds.min, max: yBounds.max, ticks: { color: '#68768b', callback: value => `${value} %` }, grid: { color: '#eef2f7' } }
+              : { min: 0, max: 10, ticks: { color: '#68768b', stepSize: 1 }, grid: { color: '#eef2f7' } }
+          }
+        }
+      });
+    }
+    function renderPeopleFilter() {
+      const select = document.getElementById('peopleFilter');
+      const people = peopleWithNotes();
+      const prev = select.value || '__all__';
+      select.innerHTML = '<option value="__all__">Tous</option>' +
+        people.map(person => `<option value="${escapeHtml(person.id)}">${escapeHtml(person.name)}</option>`).join('');
+      if (people.some(person => person.id === prev)) select.value = prev;
+      else { select.value = '__all__'; peopleFilterKey = '__all__'; }
+    }
+    function renderTracking() {
+      renderPeopleFilter();
+      renderTrackingTable();
+      renderTrackingChart('team');
+      renderTrackingChart('people');
+      requestAnimationFrame(() => {
+        Object.values(trackingCharts).forEach(chart => { if (chart) chart.resize(); });
+      });
+    }
+
+    function weather(score, max) {
+      if (!max) return { emoji: '', name: 'En attente', desc: 'Saisissez des réponses pour calculer la météo.', color: '#68768b' };
+      const ratio = score / max;
+      if (ratio >= .8) return { emoji:'☀️', name:'Grand soleil', desc:'Équipe globalement en très bonne forme, charge et moral bons.', color:'#f59e0b' };
+      if (ratio >= .6) return { emoji:'⛅', name:'Éclaircies / nuages', desc:'Ça tient, mais avec des signes de fatigue ou de tension à surveiller.', color:'#4f86d9' };
+      if (ratio >= .4) return { emoji:'🌦️', name:'Averses', desc:'Climat difficile : charge et/ou moral clairement dégradés. Ouvrir le sujet en review.', color:'#5271c6' };
+      if (ratio >= .2) return { emoji:'🌧️', name:'Pluie battante', desc:'Situation préoccupante, risque de burn-out / désengagement. Agir rapidement.', color:'#486174' };
+      return { emoji:'⛈️', name:'Orage', desc:'Crise ouverte : équipe en grande souffrance, action immédiate requise.', color:'#8B1A1A' };
+    }
+    function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
+    const BAR_COLORS = NOTE_PALETTE;
+    function barColor(score, max) {
+      if (!max) return BAR_COLORS[0];
+      return BAR_COLORS[Math.min(BAR_COLORS.length - 1, Math.floor((score / max) * BAR_COLORS.length))];
+    }
+    function paintBar(id, score, max) {
+      const el = document.getElementById(id);
+      el.style.width = max ? `${(score / max) * 100}%` : '0%';
+      el.style.background = barColor(score, max);
+    }
+    function individualSignal(r) {
+      return (r.work + r.mood <= 3) ? ['alert', 'Alerte'] : ['ok', 'OK'];
+    }
+    function noteBadge(value) {
+      const tone = NOTE_PALETTE[value] || NOTE_PALETTE[0];
+      return `<span class="note-badge" style="--tone:${tone};--on-tone:${onTone(tone)}">${value}</span>`;
+    }
+    function setCurrentTab(tab) {
+      const period = currentPeriod();
+      if (!period && !OPEN_TABS.has(tab)) tab = 'fonctionnement';
+      currentTab = tab;
+      document.querySelectorAll('.tab[data-tab]').forEach(btn => {
+        const id = btn.dataset.tab;
+        const locked = !period && !OPEN_TABS.has(id);
+        const selected = id === currentTab;
+        btn.classList.toggle('is-locked', locked);
+        btn.disabled = locked;
+        btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+        btn.tabIndex = selected ? 0 : -1;
+        btn.title = locked ? 'Ajoutez une période pour déverrouiller' : (btn.dataset.title || '');
+      });
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.hidden = panel.dataset.panel !== currentTab;
+      });
+      const onSaisies = currentTab === 'saisies';
+      const onSuivi = currentTab === 'suivi';
+      const team = currentTeam();
+      document.querySelector('.period-bar').hidden = !onSaisies && !onSuivi;
+      document.getElementById('periodSelect').hidden = !onSaisies;
+      document.getElementById('saisiesGrid').hidden = !period || !team;
+      document.getElementById('suiviGrid').hidden = !team;
+      const hint = document.getElementById('periodHint');
+      if (onSaisies && !period) {
+        hint.textContent = '💡Ajoutez une période depuis la boîte à outils';
+        hint.hidden = false;
+      } else if ((onSaisies || onSuivi) && !team) {
+        hint.textContent = '💡Ajoutez une équipe depuis la boîte à outils';
+        hint.hidden = false;
+      } else {
+        hint.hidden = true;
+      }
+      if (currentTab === 'suivi' && team) renderTracking();
+      else destroyTrackingCharts();
+    }
+    function renderPeriodSelect() {
+      const select = document.getElementById('periodSelect');
+      const periods = store.periods;
+      const ordered = [...periods].reverse();
+      if (!ordered.length) {
+        select.innerHTML = '';
+        select.disabled = true;
+        store.selectedPeriodId = null;
+        return;
+      }
+      select.disabled = false;
+      if (!store.selectedPeriodId || !periods.some(p => p.id === store.selectedPeriodId)) {
+        store.selectedPeriodId = periods[periods.length - 1].id;
+      }
+      select.innerHTML = ordered.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.label)}</option>`).join('');
+      select.value = store.selectedPeriodId;
+    }
+    function renderTeamSelect() {
+      const select = document.getElementById('teamSelect');
+      const teams = store.teams;
+      const ordered = sortedTeams();
+      if (!ordered.length) {
+        select.innerHTML = '';
+        select.disabled = true;
+        store.selectedTeamId = null;
+        return;
+      }
+      select.disabled = false;
+      if (!store.selectedTeamId || !teams.some(t => t.id === store.selectedTeamId)) {
+        store.selectedTeamId = teams[teams.length - 1].id;
+      }
+      select.innerHTML = ordered.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
+      select.value = store.selectedTeamId;
+    }
+    function render() {
+      renderPeriodSelect();
+      renderTeamSelect();
+      const period = currentPeriod();
+      const team = currentTeam();
+      setCurrentTab(currentTab);
+      if (!period || !team) {
+        saveStore();
+        return;
+      }
+      const notes = currentNotes();
+      const count = notes.length;
+      const max = count * 10;
+      const work = notes.reduce((s, r) => s + r.work, 0);
+      const mood = notes.reduce((s, r) => s + r.mood, 0);
+      const total = work + mood;
+      const w = weather(total, max);
+      document.getElementById('totalScore').textContent = total;
+      document.getElementById('maxScore').textContent = max;
+      document.getElementById('weatherEmoji').textContent = w.emoji;
+      document.getElementById('weatherName').textContent = w.name;
+      document.getElementById('weatherDesc').textContent = count ? w.desc : 'Saisissez des réponses pour calculer la météo de cette équipe.';
+      document.getElementById('scoreCard').style.background = `linear-gradient(135deg, ${w.color}, ${w.color}bb)`;
+      document.getElementById('scoreProgress').style.width = max ? `${(total / max) * 100}%` : '0%';
+      document.getElementById('workScore').textContent = `${work} / ${count * 5}`;
+      document.getElementById('moodScore').textContent = `${mood} / ${count * 5}`;
+      paintBar('workBar', work, count * 5);
+      paintBar('moodBar', mood, count * 5);
+      const tbody = document.getElementById('dataRows');
+      if (!count) tbody.innerHTML = '<tr><td class="empty" colspan="6">Aucune réponse pour cette équipe sur cette période.</td></tr>';
+      else {
+        const rows = [];
+        store.weather.notes.forEach((r, i) => {
+          if (r.periodId !== store.selectedPeriodId) return;
+          const person = personById(r.personId);
+          if (!person || person.teamId !== store.selectedTeamId) return;
+          const signal = individualSignal(r);
+          rows.push(`<tr><td class="col-fit"><span class="tag ${signal[0]}">${signal[1]}</span></td><td class="name col-fit">${escapeHtml(person ? person.name : '—')}</td><td class="cell-center num col-fit col-total">${r.work + r.mood}</td><td class="cell-center col-fit">${noteBadge(r.work)}</td><td class="cell-center col-fit">${noteBadge(r.mood)}</td><td class="row-actions col-actions"><a href="#" class="text-link" data-edit="${i}">Modifier</a><a href="#" class="text-link danger" data-delete="${i}">Retirer</a></td></tr>`);
+        });
+        tbody.innerHTML = rows.join('');
+      }
+      saveStore();
+    }
+    function buildScale(containerId, inputName) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = SCALE.map(item => `<label class="choice" style="--tone:${item.color};--on-tone:${onTone(item.color)}"><input required type="radio" name="${inputName}" value="${item.value}"><span title="${item.value} · ${item.label}">${item.value}</span></label>`).join('');
+    }
+    function setCaption(captionId, key, value) {
+      const caption = document.getElementById(captionId);
+      const item = SCALE.find(entry => entry.value === String(value));
+      if (!item) { caption.textContent = ''; return; }
+      caption.textContent = item[key];
+    }
+    function bindCaption(containerId, captionId, key) {
+      document.getElementById(containerId).addEventListener('change', event => setCaption(captionId, key, event.target.value));
+    }
+    buildScale('workScale', 'work'); buildScale('moodScale', 'mood');
+    bindCaption('workScale', 'workCaption', 'work');
+    bindCaption('moodScale', 'moodCaption', 'mood');
+    document.querySelectorAll('.memo-note').forEach(el => {
+      const tone = NOTE_PALETTE[Number(el.dataset.note)] || NOTE_PALETTE[0];
+      el.style.setProperty('--tone', tone);
+      el.style.setProperty('--on-tone', onTone(tone));
+    });
+    let pickedPersonId = null;
+    let editingNoteIndex = -1;
+    let suggestIndex = -1;
+    const personNameInput = document.getElementById('personName');
+    const personSuggest = document.getElementById('personSuggest');
+    const personHint = document.getElementById('personHint');
+    function matchingPeople(query, activeOnly) {
+      const folded = foldName(query);
+      const period = currentPeriod();
+      return sortedPeople()
+        .filter(person => person.teamId === store.selectedTeamId)
+        .filter(person => !activeOnly || personCoversPeriod(person, period))
+        .filter(person => !folded || foldName(person.name).includes(folded));
+    }
+    function setPersonHint(query, matches) {
+      const folded = foldName(query);
+      if (!folded) {
+        personHint.textContent = '';
+        personHint.classList.remove('is-new');
+        return;
+      }
+      if (pickedPersonId && personById(pickedPersonId)) {
+        personHint.textContent = '';
+        personHint.classList.remove('is-new');
+        return;
+      }
+      const exact = matches.filter(person => foldName(person.name) === folded);
+      if (exact.length === 1) {
+        personHint.textContent = '';
+        personHint.classList.remove('is-new');
+        return;
+      }
+      if (exact.length > 1) {
+        personHint.textContent = 'Plusieurs homonymes : choisissez une personne dans la liste.';
+        personHint.classList.remove('is-new');
+        return;
+      }
+      personHint.textContent = 'Ce nom ne correspond à aucun membre. Ajoutez-le depuis la boîte à outils.';
+      personHint.classList.add('is-new');
+    }
+    function hidePersonSuggest() {
+      personSuggest.hidden = true;
+      personSuggest.innerHTML = '';
+      personNameInput.setAttribute('aria-expanded', 'false');
+      suggestIndex = -1;
+    }
+    function renderPersonSuggest(matches) {
+      if (!matches.length) {
+        hidePersonSuggest();
+        return;
+      }
+      personSuggest.hidden = false;
+      personNameInput.setAttribute('aria-expanded', 'true');
+      personSuggest.innerHTML = matches.map((person, i) => {
+        const meta = tenureLabel(person);
+        return `<li><button type="button" class="combo-item${i === suggestIndex ? ' is-active' : ''}" role="option" data-person="${escapeHtml(person.id)}">${escapeHtml(person.name)}${meta ? `<span class="combo-meta">${escapeHtml(meta)}</span>` : ''}</button></li>`;
+      }).join('');
+    }
+    function refreshPersonSuggest() {
+      const query = personNameInput.value;
+      const matches = matchingPeople(query, true);
+      setPersonHint(query, matches);
+      if (!query.trim()) {
+        hidePersonSuggest();
+        return;
+      }
+      suggestIndex = matches.length ? Math.min(Math.max(suggestIndex, 0), matches.length - 1) : -1;
+      renderPersonSuggest(matches);
+    }
+    function pickPerson(person) {
+      pickedPersonId = person.id;
+      personNameInput.value = person.name;
+      hidePersonSuggest();
+      setPersonHint(person.name, [person]);
+    }
+    function resolvePersonFromInput() {
+      const name = personNameInput.value.trim();
+      if (!name) return { error: 'Indiquez un nom.' };
+      if (pickedPersonId) {
+        const picked = personById(pickedPersonId);
+        if (picked && foldName(picked.name) === foldName(name)) return { personId: picked.id };
+      }
+      const matches = matchingPeople(name, false).filter(person => foldName(person.name) === foldName(name));
+      if (matches.length === 1) return { personId: matches[0].id };
+      if (matches.length > 1) {
+        suggestIndex = 0;
+        renderPersonSuggest(matches);
+        setPersonHint(name, matches);
+        return { error: 'Plusieurs homonymes : choisissez une personne dans la liste.' };
+      }
+      return { error: 'Ce nom ne correspond à aucun membre de l\'équipe.' };
+    }
+    document.getElementById('responseForm').addEventListener('submit', event => {
+      event.preventDefault();
+      if (!store.selectedPeriodId || !store.selectedTeamId) return;
+      const resolved = resolvePersonFromInput();
+      if (resolved.error) {
+        personHint.textContent = resolved.error;
+        personHint.classList.remove('is-new');
+        return;
+      }
+      const work = Number(new FormData(event.target).get('work'));
+      const mood = Number(new FormData(event.target).get('mood'));
+      const periodId = store.selectedPeriodId;
+      const personId = resolved.personId;
+      if (editingNoteIndex >= 0) {
+        const old = store.weather.notes[editingNoteIndex];
+        if (old && old.personId !== personId) store.weather.notes.splice(editingNoteIndex, 1);
+      }
+      const record = { periodId, personId, work, mood };
+      const i = store.weather.notes.findIndex(r => r.periodId === periodId && r.personId === personId);
+      if (i >= 0) store.weather.notes[i] = record; else store.weather.notes.push(record);
+      closeResponseModal();
+      render();
+    });
+    document.getElementById('dataRows').addEventListener('click', event => {
+      const edit = event.target.closest('[data-edit]');
+      if (edit) {
+        event.preventDefault();
+        const record = store.weather.notes[Number(edit.dataset.edit)];
+        if (record) openResponseModal(record);
+        return;
+      }
+      const del = event.target.closest('[data-delete]');
+      if (!del) return;
+      event.preventDefault();
+      store.weather.notes.splice(Number(del.dataset.delete), 1);
+      render();
+    });
+    personNameInput.addEventListener('input', () => {
+      const current = pickedPersonId ? personById(pickedPersonId) : null;
+      if (current && foldName(current.name) !== foldName(personNameInput.value)) pickedPersonId = null;
+      suggestIndex = 0;
+      refreshPersonSuggest();
+    });
+    personNameInput.addEventListener('focus', () => {
+      if (personNameInput.value.trim()) refreshPersonSuggest();
+    });
+    personNameInput.addEventListener('keydown', event => {
+      const items = [...personSuggest.querySelectorAll('[data-person]')];
+      if (event.key === 'ArrowDown' && items.length) {
+        event.preventDefault();
+        suggestIndex = (suggestIndex + 1) % items.length;
+        items.forEach((el, i) => el.classList.toggle('is-active', i === suggestIndex));
+        items[suggestIndex].scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if (event.key === 'ArrowUp' && items.length) {
+        event.preventDefault();
+        suggestIndex = (suggestIndex - 1 + items.length) % items.length;
+        items.forEach((el, i) => el.classList.toggle('is-active', i === suggestIndex));
+        items[suggestIndex].scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if (event.key === 'Enter' && !personSuggest.hidden && items[suggestIndex]) {
+        event.preventDefault();
+        const person = personById(items[suggestIndex].dataset.person);
+        if (person) pickPerson(person);
+        return;
+      }
+      if (event.key === 'Escape') hidePersonSuggest();
+    });
+    personSuggest.addEventListener('mousedown', event => {
+      const btn = event.target.closest('[data-person]');
+      if (!btn) return;
+      event.preventDefault();
+      const person = personById(btn.dataset.person);
+      if (person) pickPerson(person);
+    });
+    document.getElementById('periodSelect').addEventListener('change', event => {
+      store.selectedPeriodId = event.target.value || null;
+      render();
+    });
+    document.getElementById('teamSelect').addEventListener('change', event => {
+      store.selectedTeamId = event.target.value || null;
+      render();
+    });
+    const responseModal = document.getElementById('responseModal');
+    function openResponseModal(record) {
+      responseModal.hidden = false;
+      document.getElementById('responseForm').reset();
+      hidePersonSuggest();
+      const editing = Boolean(record);
+      editingNoteIndex = editing ? store.weather.notes.indexOf(record) : -1;
+      document.getElementById('responseModalTitle').textContent = editing ? 'Modifier la réponse' : 'Ajouter une réponse';
+      document.getElementById('responseSubmit').textContent = editing ? 'Modifier' : 'Enregistrer';
+      pickedPersonId = null;
+      personHint.textContent = '';
+      personHint.classList.remove('is-new');
+      if (record) {
+        const person = personById(record.personId);
+        pickedPersonId = record.personId;
+        personNameInput.value = person ? person.name : '';
+        const workInput = document.querySelector(`#workScale input[value="${record.work}"]`);
+        const moodInput = document.querySelector(`#moodScale input[value="${record.mood}"]`);
+        if (workInput) workInput.checked = true;
+        if (moodInput) moodInput.checked = true;
+        setCaption('workCaption', 'work', record.work);
+        setCaption('moodCaption', 'mood', record.mood);
+      } else {
+        setCaption('workCaption', 'work');
+        setCaption('moodCaption', 'mood');
+      }
+      personNameInput.focus();
+    }
+    function closeResponseModal() {
+      responseModal.hidden = true;
+      document.getElementById('responseForm').reset();
+      hidePersonSuggest();
+      pickedPersonId = null;
+      editingNoteIndex = -1;
+      personHint.textContent = '';
+      personHint.classList.remove('is-new');
+      document.getElementById('responseModalTitle').textContent = 'Ajouter une réponse';
+      document.getElementById('responseSubmit').textContent = 'Enregistrer';
+      setCaption('workCaption', 'work');
+      setCaption('moodCaption', 'mood');
+    }
+    function closeTopModal() {
+      if (!responseModal.hidden) closeResponseModal();
+    }
+    document.querySelector('.tabs').addEventListener('click', event => {
+      const btn = event.target.closest('[data-tab]');
+      if (!btn || btn.disabled) return;
+      currentTab = btn.dataset.tab;
+      setCurrentTab(currentTab);
+    });
+    document.getElementById('peopleFilter').addEventListener('change', event => {
+      peopleFilterKey = event.target.value;
+      renderTrackingChart('people');
+    });
+    document.querySelector('.tabs').addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      const tabs = [...document.querySelectorAll('.tab[data-tab]')].filter(t => !t.disabled);
+      const i = tabs.findIndex(t => t.dataset.tab === currentTab);
+      if (i < 0) return;
+      event.preventDefault();
+      let next = i;
+      if (event.key === 'ArrowRight') next = (i + 1) % tabs.length;
+      if (event.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = tabs.length - 1;
+      currentTab = tabs[next].dataset.tab;
+      setCurrentTab(currentTab);
+      tabs[next].focus();
+    });
+    document.getElementById('addResponse').addEventListener('click', event => {
+      event.preventDefault();
+      openResponseModal();
+    });
+    responseModal.addEventListener('click', event => {
+      if (event.target.closest('[data-close-modal]')) closeResponseModal();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      if (!personSuggest.hidden) { hidePersonSuggest(); return; }
+      closeTopModal();
+    });
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estimation CURSE - 0.1.0</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+  <style>
+    :root {
+      --ink: #142238;
+      --muted: #68768b;
+      --line: #dde5ef;
+      --surface: #ffffff;
+      --canvas: #f4f7fb;
+      --blue: #2f6fed;
+      --blue-dark: #1e4eb3;
+      --shadow: 0 18px 50px rgba(20, 34, 56, .10);
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    html {
+      min-height: 100%;
+      background: radial-gradient(circle at 8% 2%, #e0edff 0, transparent 30%), radial-gradient(circle at 94% 8%, #fff0d6 0, transparent 24%), var(--canvas);
+    }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    .app { max-width: 1180px; margin: 0 auto; padding: 32px 24px 60px; }
+    .hero { margin-bottom: 22px; }
+    .back { display: inline-flex; align-items: center; gap: 5px; margin: 0 0 14px; color: var(--muted); font-size: .75rem; font-weight: 600; letter-spacing: .02em; text-decoration: none; }
+    .back:hover { color: var(--blue); }
+    h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.35rem); line-height: 1; letter-spacing: -.055em; font-weight: 600; }
+    h1 .version { font-size: .85rem; font-weight: 600; letter-spacing: 0; color: var(--muted); vertical-align: baseline; }
+    .hero p { max-width: 610px; color: var(--muted); margin: 13px 0 0; line-height: 1.55; }
+    h2 { font-size: 1.1rem; margin: 0; letter-spacing: -.02em; font-weight: 600; }
+    .sub { color: var(--muted); font-size: .88rem; line-height: 1.45; margin: 8px 0 0; }
+    .grid { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 22px; align-items: start; }
+    .card { background: rgba(255,255,255,.93); border: 1px solid rgba(221,229,239,.95); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card-pad { padding: 24px; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .btn { cursor: pointer; border: 1px solid var(--line); border-radius: 6px; padding: 10px 13px; color: var(--ink); font-size: .86rem; font-weight: 600; background: white; }
+    .btn.primary { color: white; border-color: var(--blue); background: var(--blue); }
+    .text-link { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-size: .86rem; font-weight: 600; text-decoration: none; cursor: pointer; background: none; border: 0; padding: 0; }
+    .text-link:hover { color: var(--blue); }
+    .text-link.success { color: #1B7A3C; }
+    .text-link.success:hover { color: #156332; }
+    .text-link.danger { color: #b42338; }
+    .text-link.danger:hover { color: #8d2135; }
+    .text-link[hidden] { display: none !important; }
+    .empty { text-align: center; padding: 30px 10px; color: var(--muted); }
+    .scale { display: flex; gap: 4px; flex-wrap: wrap; }
+    .choice { position: relative; cursor: pointer; }
+    .choice input { position: absolute; opacity: 0; pointer-events: none; }
+    .choice span { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 5px; border: 1.5px solid var(--tone); background: transparent; color: var(--tone); font-size: .85rem; font-weight: 600; }
+    .choice input:checked + span { background: var(--tone); color: var(--on-tone, #fff); }
+    .choice input:disabled + span { cursor: default; }
+    .scale-caption { margin: 0; min-width: 7.5em; font-size: .75rem; font-weight: 600; line-height: 1.3; }
+    .est-list, .est-list ul, .story-list { list-style: none; margin: 0; padding: 0; }
+    .est-list ul { margin: 0 0 4px 16px; }
+    .est, .story-row { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: transparent; text-align: left; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: inherit; }
+    .est span, .story-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .est b, .story-row b { flex: none; font-size: .82rem; font-variant-numeric: tabular-nums; }
+    .est.is-on, .est:hover, .story-row:hover { background: #eef4ff; }
+    .story-row { border: 1px solid var(--line); background: #fff; margin-top: 6px; }
+    .story-total { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; font-weight: 700; }
+    .est-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .kind { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .title-input { width: 100%; margin: 4px 0 0 -8px; border: 1px solid transparent; border-radius: 5px; padding: 4px 8px; font-size: 1.45rem; font-weight: 600; letter-spacing: -.03em; color: var(--ink); background: transparent; }
+    .title-input:hover, .title-input:focus { border-color: var(--line); background: #fff; outline: none; }
+    .pts { flex: none; background: #f4f7fb; border-radius: 8px; padding: 10px 14px; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+    .parent-link { margin-bottom: 8px; }
+    .stories { margin-top: 18px; }
+    .curse { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
+    .curse-item { display: flex; align-items: center; gap: 14px; }
+    .curse-head { display: flex; align-items: center; gap: 8px; width: 148px; flex: none; margin: 0; }
+    .letter { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: color-mix(in srgb, var(--tone) 16%, white); color: var(--tone); }
+    .curse-name { font-weight: 600; font-size: .86rem; }
+    .chart-wrap { position: relative; height: 380px; margin-top: 8px; }
+    .card-foot { display: flex; justify-content: flex-end; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+    [hidden] { display: none !important; }
+    @media (max-width: 860px) {
+      .app { padding: 24px 14px 40px; }
+      .grid { grid-template-columns: 1fr; }
+      .curse-item { flex-wrap: wrap; }
+      .chart-wrap { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <a class="back" href="index.html">← Boîte à outils</a>
+      <h1>Estimation CURSE <span class="version">0.1.0</span></h1>
+      <p>Cinq axes, un radar, des points.</p>
+    </header>
+
+    <div class="grid">
+      <article class="card card-pad">
+        <div class="section-title">
+          <h2>Estimations</h2>
+          <button type="button" class="text-link success" id="addBtn">Ajouter</button>
+        </div>
+        <ul class="est-list" id="estList"></ul>
+      </article>
+
+      <div>
+        <article class="card card-pad" id="empty">
+          <p class="empty">Ajoutez une estimation pour afficher le radar.</p>
+        </article>
+        <article class="card card-pad" id="card" hidden>
+          <button type="button" class="text-link parent-link" id="parentLink" hidden></button>
+          <div class="est-head">
+            <div style="min-width:0;flex:1">
+              <div class="kind" id="kind">Feature</div>
+              <input class="title-input" id="title" maxlength="80" autocomplete="off" aria-label="Titre">
+            </div>
+            <div class="pts" id="pts">1 pt</div>
+          </div>
+
+          <section class="stories" id="stories">
+            <div class="section-title">
+              <h2>User stories</h2>
+              <button type="button" class="text-link success" id="addStory">Ajouter</button>
+            </div>
+            <ul class="story-list" id="storyRows"></ul>
+            <div class="story-total" id="storyTotal" hidden><span>Total</span><strong id="storyTotalPts"></strong></div>
+          </section>
+
+          <div class="curse" id="curse"></div>
+          <div class="chart-wrap"><canvas id="radar"></canvas></div>
+          <p class="sub" id="radarNote"></p>
+          <div class="card-foot">
+            <button type="button" class="text-link danger" id="deleteBtn">Supprimer</button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+  <script src="store.js"></script>
+  <script>
+    const AXES = [
+      { key: 'c', letter: 'C', name: 'Complexité', color: '#7c3aed', labels: ['Simple', 'Facile', 'Modérée', 'Complexe', 'Très complexe'] },
+      { key: 'u', letter: 'U', name: 'Incertitude', color: '#9333ea', labels: ['Nulle', 'Faible', 'Modérée', 'Forte', 'Totale'] },
+      { key: 'r', letter: 'R', name: 'Risque', color: '#e11d48', labels: ['Nul', 'Faible', 'Modéré', 'Élevé', 'Critique'] },
+      { key: 's', letter: 'S', name: 'Taille', color: '#16a34a', labels: ['Minuscule', 'Petite', 'Moyenne', 'Grande', 'Énorme'] },
+      { key: 'e', letter: 'E', name: 'Effort', color: '#2563eb', labels: ['Léger', 'Facile', 'Moyen', 'Demandant', 'Lourd'] }
+    ];
+    const RADAR_KEYS = ['c', 'e', 'u', 'r', 's'];
+    const FIB = [1, 2, 3, 5, 8];
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    function onTone(hex) {
+      const n = parseInt(hex.slice(1), 16);
+      const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.62 ? '#142238' : '#fff';
+    }
+    function axis(key) { return AXES.find(item => item.key === key); }
+    function ptsLabel(n) { return n > 1 ? `${n} pts` : `${n} pt`; }
+
+    let store = LeadStore.load();
+    let selectedId = null;
+    let paintedId = null;
+    let chart = null;
+
+    function items() { return store.curse.estimations; }
+    function selected() { return items().find(item => item.id === selectedId) || null; }
+    function childrenOf(id) { return items().filter(item => item.parentId === id); }
+    function ownPoints(item) {
+      return AXES.reduce((sum, axe) => sum + FIB[item.scores[axe.key] - 1], 0);
+    }
+    function displayOf(item) {
+      const kids = item.type === 'feature' ? childrenOf(item.id) : [];
+      if (!kids.length) return { scores: item.scores, points: ownPoints(item), summed: false };
+      const scores = {};
+      AXES.forEach(axe => { scores[axe.key] = Math.max(...kids.map(kid => kid.scores[axe.key])); });
+      return { scores, points: kids.reduce((sum, kid) => sum + ownPoints(kid), 0), summed: true };
+    }
+    function save() { LeadStore.save(store); }
+
+    function renderList() {
+      const top = items().filter(item => !item.parentId);
+      const list = document.getElementById('estList');
+      list.innerHTML = top.length ? top.map(item => {
+        const kids = childrenOf(item.id);
+        const nested = kids.length ? `<ul>${kids.map(rowHtml).join('')}</ul>` : '';
+        return `<li>${rowHtml(item)}${nested}</li>`;
+      }).join('') : '<li class="empty">Aucune estimation.</li>';
+    }
+    function rowHtml(item) {
+      const view = displayOf(item);
+      const mark = item.type === 'feature' ? '⭐' : '🌱';
+      const on = item.id === selectedId ? ' is-on' : '';
+      return `<button type="button" class="est${on}" data-id="${esc(item.id)}"><span>${mark} ${esc(item.title)}</span><b>${ptsLabel(view.points)}</b></button>`;
+    }
+
+    function paint() {
+      renderList();
+      const item = selected();
+      document.getElementById('empty').hidden = !!item;
+      document.getElementById('card').hidden = !item;
+      if (!item) return;
+      const view = displayOf(item);
+      const title = document.getElementById('title');
+      if (document.activeElement !== title || paintedId !== item.id) title.value = item.title;
+      paintedId = item.id;
+      document.getElementById('kind').textContent = item.type === 'feature' ? 'Feature' : 'User story';
+      document.getElementById('pts').textContent = ptsLabel(view.points);
+      const parent = item.parentId ? items().find(entry => entry.id === item.parentId) : null;
+      const parentLink = document.getElementById('parentLink');
+      parentLink.hidden = !parent;
+      parentLink.textContent = parent ? `← ${parent.title}` : '';
+      const stories = document.getElementById('stories');
+      stories.hidden = item.type !== 'feature';
+      if (item.type === 'feature') {
+        const kids = childrenOf(item.id);
+        document.getElementById('storyRows').innerHTML = kids.map(kid => {
+          return `<li><button type="button" class="story-row" data-id="${esc(kid.id)}"><span>🌱 ${esc(kid.title)}</span><b>${ptsLabel(ownPoints(kid))}</b></button></li>`;
+        }).join('');
+        const total = document.getElementById('storyTotal');
+        total.hidden = !kids.length;
+        document.getElementById('storyTotalPts').textContent = ptsLabel(view.points);
+      }
+      AXES.forEach(axe => {
+        const level = view.scores[axe.key];
+        document.getElementById('cap-' + axe.key).textContent = axe.labels[level - 1];
+        document.querySelectorAll(`#scale-${axe.key} input`).forEach(input => {
+          input.disabled = view.summed;
+          input.checked = Number(input.value) === level;
+        });
+      });
+      document.getElementById('radarNote').textContent = view.summed
+        ? 'Le radar reprend le niveau le plus élevé de chaque axe dans les user stories.'
+        : 'Chaque niveau vaut 1, 2, 3, 5 ou 8 pts. Le total est la somme des cinq axes.';
+      paintChart(view);
+    }
+
+    function paintChart(view) {
+      const canvas = document.getElementById('radar');
+      if (!canvas || typeof Chart === 'undefined') return;
+      const labels = RADAR_KEYS.map(key => axis(key).name);
+      const data = RADAR_KEYS.map(key => view.scores[key]);
+      const colors = RADAR_KEYS.map(key => axis(key).color);
+      if (!chart) {
+        chart = new Chart(canvas, {
+          type: 'radar',
+          data: {
+            labels,
+            datasets: [{
+              data,
+              borderColor: '#e0a106',
+              backgroundColor: 'rgba(224, 161, 6, .28)',
+              pointBackgroundColor: colors,
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 5,
+              borderWidth: 2,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 180 },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    const axe = axis(RADAR_KEYS[ctx.dataIndex]);
+                    const level = ctx.raw;
+                    return ` ${axe.labels[level - 1]} · ${FIB[level - 1]} pts`;
+                  }
+                }
+              }
+            },
+            scales: {
+              r: {
+                min: 0, max: 5,
+                ticks: { stepSize: 1, showLabelBackdrop: false, color: '#68768b', callback: v => v === 0 ? '' : v },
+                angleLines: { color: 'rgba(104,118,139,.18)' },
+                grid: { color: 'rgba(104,118,139,.2)' },
+                pointLabels: {
+                  color: ctx => colors[ctx.index],
+                  font: { size: 12, weight: 600 },
+                  padding: 10
+                }
+              }
+            }
+          }
+        });
+        return;
+      }
+      chart.data.datasets[0].data = data;
+      chart.update();
+    }
+
+    function select(id) {
+      if (!items().some(item => item.id === id)) return;
+      selectedId = id;
+      paint();
+    }
+    function addEstimation(parentId) {
+      const parent = parentId ? items().find(item => item.id === parentId && item.type === 'feature') : null;
+      const item = {
+        id: LeadStore.uid(),
+        title: 'Nouvelle estimation',
+        type: parent ? 'story' : 'feature',
+        parentId: parent ? parent.id : null,
+        scores: { c: 3, u: 3, r: 3, s: 3, e: 3 }
+      };
+      items().unshift(item);
+      selectedId = item.id;
+      save();
+      paint();
+      const title = document.getElementById('title');
+      title.focus();
+      title.select();
+    }
+    function removeSelected() {
+      const item = selected();
+      if (!item) return;
+      const kids = childrenOf(item.id);
+      if (!confirm(`Supprimer « ${item.title} »${kids.length ? ' et ses user stories' : ''} ?`)) return;
+      const drop = new Set([item.id, ...kids.map(kid => kid.id)]);
+      const parentId = item.parentId;
+      store.curse.estimations = items().filter(entry => !drop.has(entry.id));
+      selectedId = (parentId && items().some(entry => entry.id === parentId))
+        ? parentId
+        : (items().find(entry => !entry.parentId) || {}).id || null;
+      save();
+      paint();
+    }
+
+    document.getElementById('curse').innerHTML = AXES.map(axe => `
+      <div class="curse-item">
+        <div class="curse-head" style="--tone:${axe.color}">
+          <span class="letter">${axe.letter}</span>
+          <div class="curse-name">${axe.name}</div>
+        </div>
+        <div class="scale" id="scale-${axe.key}"></div>
+        <p class="scale-caption" id="cap-${axe.key}"></p>
+      </div>
+    `).join('');
+    AXES.forEach(axe => {
+      const el = document.getElementById('scale-' + axe.key);
+      el.innerHTML = [1, 2, 3, 4, 5].map(n => `<label class="choice" style="--tone:${axe.color};--on-tone:${onTone(axe.color)}"><input type="radio" name="score-${axe.key}" value="${n}"><span title="${n} · ${esc(axe.labels[n - 1])}">${n}</span></label>`).join('');
+      el.addEventListener('change', () => {
+        const item = selected();
+        if (!item || displayOf(item).summed) return;
+        item.scores[axe.key] = Number(el.querySelector('input:checked').value);
+        save();
+        paint();
+      });
+    });
+    document.getElementById('estList').addEventListener('click', event => {
+      const btn = event.target.closest('[data-id]');
+      if (btn) select(btn.dataset.id);
+    });
+    document.getElementById('storyRows').addEventListener('click', event => {
+      const btn = event.target.closest('[data-id]');
+      if (btn) select(btn.dataset.id);
+    });
+    document.getElementById('addBtn').addEventListener('click', () => addEstimation(null));
+    document.getElementById('addStory').addEventListener('click', () => {
+      const item = selected();
+      if (item && item.type === 'feature') addEstimation(item.id);
+    });
+    document.getElementById('parentLink').addEventListener('click', () => {
+      const item = selected();
+      if (item && item.parentId) select(item.parentId);
+    });
+    document.getElementById('deleteBtn').addEventListener('click', removeSelected);
+    document.getElementById('title').addEventListener('input', () => {
+      const item = selected();
+      const title = document.getElementById('title');
+      if (!item) return;
+      const value = title.value.trim().slice(0, 80);
+      if (value) item.title = value;
+      save();
+      renderList();
+    });
+    document.getElementById('title').addEventListener('blur', () => {
+      const item = selected();
+      const title = document.getElementById('title');
+      if (!item) return;
+      item.title = title.value.trim().slice(0, 80) || 'Sans titre';
+      title.value = item.title;
+      save();
+      renderList();
+    });
+
+    if (typeof Chart !== 'undefined') {
+      Chart.defaults.font.family = 'Inter, ui-sans-serif, system-ui, sans-serif';
+      Chart.defaults.color = '#68768b';
+    }
+    selectedId = (items().find(item => !item.parentId) || items()[0] || {}).id || null;
+    paint();
+  </script>
+</body>
+</html>

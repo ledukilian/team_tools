@@ -1,0 +1,26 @@
+---
+description: Interdire le tiret « – » dans le texte lisible, pour éviter un ton trop écrit par une IA
+alwaysApply: true
+---
+
+# Pas de tiret « – »
+
+Dans le texte que quelqu'un lit (interface, README, messages), n'utilise pas le caractère « – ».
+
+Il donne un ton trop écrit par une IA. Ne le remplace pas par « — ».
+
+Le trait court des noms techniques reste permis : code, CSS, fichiers, identifiants (`border-radius`, `skill-matrix.html`).
+
+## À la place
+
+Choisis selon le sens :
+
+- une autre liaison : « à », « et », « ou », « puis »
+- une ponctuation : point, virgule, deux-points
+- une phrase continue, ou deux phrases
+
+```markdown
+<!-- ❌ 2–3. En exploration. La personne découvre le sujet – c'est normal. -->
+
+<!-- ✅ 2 à 3. En exploration. La personne découvre le sujet. C'est normal. -->
+```

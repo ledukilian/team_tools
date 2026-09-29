@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boîte à outils d'équipe</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛠️</text></svg>">
+  <style>
+    :root{
+      --ink:#142238; --muted:#68768b; --line:#dde5ef; --canvas:#f4f7fb;
+      --blue:#2f6fed; --shadow:0 18px 50px rgba(20,34,56,.10); --radius:20px;
+      --container:980px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%}
+    body{
+      min-width:320px; min-height:100vh; color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--canvas);
+    }
+    body::before{
+      content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+      background:
+        radial-gradient(ellipse 70% 55% at 8% 0%,#e0edff 0,transparent 55%),
+        radial-gradient(ellipse 55% 45% at 96% 4%,#fff0d6 0,transparent 50%),
+        radial-gradient(ellipse 60% 40% at 70% 100%,#e8f0ff 0,transparent 55%),
+        radial-gradient(ellipse 50% 35% at 10% 100%,#fff6e8 0,transparent 50%),
+        var(--canvas);
+    }
+    .app{max-width:var(--container);margin:0 auto;padding:48px 24px 280px}
+    h1{margin:0;font-size:clamp(2.2rem,5vw,3.4rem);line-height:.95;letter-spacing:-.055em;font-weight:600}
+    .lead{max-width:520px;margin:16px 0 0;color:var(--muted);line-height:1.55}
+    .sheet{--peek:240px}
+    .shade{
+      position:fixed;inset:0;z-index:20;background:rgba(20,34,56,.22);
+      opacity:0;pointer-events:none;
+    }
+    .sheet.is-open .shade{
+      opacity:1;pointer-events:auto;
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    }
+    .sheet-panel{
+      position:fixed;left:0;right:0;bottom:0;z-index:21;
+      display:flex;flex-direction:column;
+      height:calc(100vh - 24px);overflow:hidden;
+      background:rgba(255,255,255,.97);border:1px solid rgba(221,229,239,.95);border-bottom:0;
+      border-radius:22px 22px 0 0;box-shadow:0 -16px 40px rgba(20,34,56,.12);
+      transform:translateY(calc(100% - var(--peek)));
+      transition:transform .28s ease;
+    }
+    .sheet.is-open .sheet-panel{transform:translateY(0)}
+    @media(min-width:1040px){
+      .sheet-panel{left:50%;right:auto;width:var(--container);transform:translate(-50%,calc(100% - var(--peek)))}
+      .sheet.is-open .sheet-panel{transform:translate(-50%,0)}
+    }
+    .sheet-extra{flex:1;min-height:0;overflow:auto;padding:18px 24px 8px}
+    .sheet-face{flex:none;padding:16px 24px 14px}
+    .sheet.is-open .sheet-face{border-bottom:1px solid var(--line)}
+    .file-inner{max-width:var(--container);margin:0 auto}
+    .file-top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+    .file-title{display:flex;align-items:center;gap:12px}
+    .folder{width:52px;height:42px;flex:none;filter:drop-shadow(0 8px 10px rgba(176,124,16,.28))}
+    .file-title h2{margin:0;font-size:1.55rem;letter-spacing:-.03em}
+    .local-note{margin:6px 0 0;color:var(--muted);font-size:.9rem}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:10px;margin:18px 0 0;padding:0;list-style:none}
+    .stats li{padding:12px 10px;border-radius:14px;background:#f4f7fb}
+    .stats strong{display:block;font-size:1.55rem;letter-spacing:-.04em;font-weight:600}
+    .stats span{display:block;margin-top:2px;color:var(--muted);font-size:.78rem;font-weight:600}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-top:36px}
+    .tool{
+      display:flex;flex-direction:column;gap:14px;min-height:210px;
+      padding:22px;text-decoration:none;color:inherit;
+      background:rgba(255,255,255,.94);border:1px solid rgba(221,229,239,.95);
+      border-radius:var(--radius);box-shadow:var(--shadow);transition:.18s ease;
+    }
+    .tool:hover{transform:translateY(-2px);border-color:#b8c6d9;box-shadow:0 16px 36px rgba(20,34,56,.12)}
+    .tool-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .mark{font-size:1.7rem;line-height:1}
+    .version{font-size:.75rem;font-weight:600;color:var(--muted)}
+    h2{margin:0;font-size:1.15rem;letter-spacing:-.02em;font-weight:600}
+    .tool p{margin:6px 0 0;color:var(--muted);font-size:.9rem;line-height:1.5}
+    .open{margin-top:auto;font-size:.82rem;font-weight:600;color:var(--blue)}
+    .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .panel h2{margin:0;font-size:1.45rem;letter-spacing:-.03em}
+    .config-lead{margin:8px 0 0;color:var(--muted);line-height:1.5}
+    .close{
+      width:36px;height:36px;flex:none;border:1px solid var(--line);border-radius:11px;
+      background:white;color:var(--ink);font:inherit;font-size:1.2rem;line-height:1;cursor:pointer;
+    }
+    .settings{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+    .card{
+      background:rgba(255,255,255,.94);border:1px solid rgba(221,229,239,.95);
+      border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;
+    }
+    .card.wide{grid-column:1 / -1}
+    .card h3{margin:0;font-size:1.05rem}
+    .sub{margin:6px 0 0;color:var(--muted);font-size:.88rem;line-height:1.45}
+    .table-wrap{max-height:280px;overflow:auto;margin-top:14px;border:1px solid var(--line);border-radius:12px}
+    table{width:100%;border-collapse:collapse;font-size:.9rem}
+    th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+    th{position:sticky;top:0;background:#f8fafc;color:var(--muted);font-size:.75rem;letter-spacing:.02em}
+    tr:last-child td{border-bottom:0}
+    td.empty{color:var(--muted);text-align:center}
+    .actions-cell{white-space:nowrap;text-align:right}
+    .text-link{color:var(--blue);font-weight:600;font-size:.84rem;text-decoration:none;margin-right:12px}
+    .text-link.danger{color:#b42338}
+    .add{display:inline-block;margin-top:12px}
+    .file-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{
+      height:40px;padding:0 14px;border-radius:11px;border:1px solid var(--line);
+      background:white;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;
+    }
+    .btn.primary{background:var(--blue);border-color:var(--blue);color:white}
+    .modal[hidden]{display:none}
+    .modal{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:20px}
+    .backdrop{position:absolute;inset:0;background:rgba(20,34,56,.35)}
+    .dialog{position:relative;width:min(460px,100%);background:white;border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+    .dialog h3{margin:0 0 14px;font-size:1.15rem}
+    label{display:block;font-size:.78rem;font-weight:600;margin-bottom:6px}
+    input,select{width:100%;height:40px;border:1px solid var(--line);border-radius:11px;padding:0 11px;font:inherit;color:var(--ink)}
+    .dates{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .field{margin-top:12px}
+    .hint{display:block;margin-top:4px;color:var(--muted);font-size:.75rem;font-weight:500}
+    .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+    .jira-form{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(220px,.8fr);gap:14px;margin-top:16px;align-items:end}
+    .secret{display:flex;gap:8px}
+    .secret input{flex:1;min-width:0}
+    .jira-status{margin:12px 0 0;font-size:.82rem;font-weight:600;color:var(--muted)}
+    .jira-status.is-on{color:#1b6b45}
+    @media(max-width:760px){
+      .app{padding:28px 14px 460px}
+      .sheet-extra,.sheet-face{padding-left:14px;padding-right:14px}
+      .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .file-row{width:100%}
+      .settings{grid-template-columns:1fr}
+      .card.wide{grid-column:auto}
+      .jira-form{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<main class="app">
+  <h1>Boîte à outils d'équipe 🛠️</h1>
+  <p class="lead">Un ensemble d'outils pour améliorer le fonctionnement d'une équipe.</p>
+
+  <nav class="grid" aria-label="Outils">
+    <a class="tool" href="skill-matrix.html">
+      <div class="tool-top">
+        <span class="mark" aria-hidden="true">🕸️</span>
+        <span class="version">0.2.0</span>
+      </div>
+      <div>
+        <h2>Matrice de compétences</h2>
+        <p>Cartographiez les compétences, saisissez les notes et suivez leur évolution dans le temps.</p>
+      </div>
+      <span class="open">Ouvrir</span>
+    </a>
+    <a class="tool" href="weather.html">
+      <div class="tool-top">
+        <span class="mark" aria-hidden="true">🌦️</span>
+        <span class="version">0.2.1</span>
+      </div>
+      <div>
+        <h2>Météo d'équipe</h2>
+        <p>Deux indicateurs simples, un suivi humain pour prendre le pouls de l'équipe.</p>
+      </div>
+      <span class="open">Ouvrir</span>
+    </a>
+    <a class="tool" href="estimation.html">
+      <div class="tool-top">
+        <span class="mark" aria-hidden="true">📡</span>
+        <span class="version">0.1.0</span>
+      </div>
+      <div>
+        <h2>Estimation CURSE</h2>
+        <p>Cinq axes, un radar et des points pour une feature ou une user story.</p>
+      </div>
+      <span class="open">Ouvrir</span>
+    </a>
+  </nav>
+</main>
+
+<footer class="sheet" id="dataSheet">
+  <div class="shade" data-close-settings></div>
+  <div class="sheet-panel">
+    <div class="sheet-face">
+      <div class="file-inner">
+    <div class="file-top">
+      <div>
+        <div class="file-title">
+          <svg class="folder" viewBox="0 0 64 52" aria-hidden="true">
+            <path fill="#E8B423" d="M8 16.5C8 14 10 12 12.5 12H27l3.2 3.4c.8.8 1.9 1.3 3 1.3H51.5c2.5 0 4.5 2 4.5 4.5V24H8V16.5z"/>
+            <path fill="#F6C445" d="M6 18c0-3.3 2.7-6 6-6h11.4c1.5 0 2.9.7 3.8 1.8L30.4 18H52c3.3 0 6 2.7 6 6v2H6V18z"/>
+            <path fill="#FFD86B" d="M4 24h56l-3.2 18.2A6 6 0 0 1 50.9 48H13.1a6 6 0 0 1-5.9-5.8L4 24z"/>
+            <path fill="#FFF3C4" d="M10 28h28c1.1 0 1.8 1.2 1.2 2.1l-2.2 3.4c-.4.6-1 1-1.7 1H12.2c-.8 0-1.4-.6-1.4-1.4V29.2c0-.7.5-1.2 1.2-1.2z" opacity=".55"/>
+          </svg>
+          <h2 id="fileTitle">Mes données</h2>
+        </div>
+        <p class="local-note">🔐 <strong>Vos données sont en sécurité</strong> ; les données restent en local dans votre navigateur</p>
+      </div>
+      <div class="file-row">
+        <button type="button" class="btn" id="importJson">Importer</button>
+        <input id="jsonImport" type="file" accept=".json,application/json" hidden>
+        <button type="button" class="btn primary" id="exportJson">Exporter</button>
+        <button type="button" class="btn" id="openSettings" aria-expanded="false" aria-controls="configTitle">Gérer</button>
+      </div>
+    </div>
+    <ul class="stats">
+      <li><strong id="statTeams">0</strong><span>Équipes</span></li>
+      <li><strong id="statPeople">0</strong><span>Personnes</span></li>
+      <li><strong id="statPeriods">0</strong><span>Périodes</span></li>
+      <li><strong id="statNotes">0</strong><span>Notes météo</span></li>
+      <li><strong id="statSkills">0</strong><span>Compétences</span></li>
+      <li><strong id="statCurse">0</strong><span>Estimations</span></li>
+    </ul>
+      </div>
+    </div>
+    <div class="sheet-extra">
+      <div class="file-inner">
+        <div class="panel-head">
+          <div>
+            <h2 id="configTitle">Paramètres</h2>
+            <p class="config-lead">Fichier d'équipe, partagé par la matrice, la météo et les estimations.</p>
+          </div>
+          <button type="button" class="close" data-close-settings aria-label="Réduire">×</button>
+        </div>
+        <div class="settings">
+      <article class="card">
+        <h3>Périodes</h3>
+        <p class="sub">Les saisies de chaque module sont rattachées à une période.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Période</th><th>Début</th><th>Fin</th><th></th></tr></thead>
+            <tbody id="periodRows"></tbody>
+          </table>
+        </div>
+        <a href="#" id="addPeriod" class="text-link add">Ajouter une période</a>
+      </article>
+      <article class="card">
+        <h3>Équipes</h3>
+        <p class="sub">Les membres sont rattachés à une équipe.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Équipe</th><th>Membres</th><th></th></tr></thead>
+            <tbody id="teamRows"></tbody>
+          </table>
+        </div>
+        <a href="#" id="addTeam" class="text-link add">Ajouter une équipe</a>
+      </article>
+      <article class="card wide">
+        <h3>Membres</h3>
+        <p class="sub">Dates d'arrivée et de départ optionnelles, au format jj/mm/aaaa.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Personne</th><th>Équipe</th><th>Début</th><th>Fin</th><th></th></tr></thead>
+            <tbody id="peopleRows"></tbody>
+          </table>
+        </div>
+        <a href="#" id="addPerson" class="text-link add">Ajouter un membre</a>
+      </article>
+      <article class="card wide">
+        <h3>API Jira</h3>
+        <p class="sub">Host et token enregistrés dans ce navigateur, et inclus dans l'export JSON.</p>
+        <div class="jira-form">
+          <div>
+            <label for="jiraHost">Host</label>
+            <input id="jiraHost" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://exemple.atlassian.net">
+          </div>
+          <div>
+            <label for="jiraToken">Token</label>
+            <div class="secret">
+              <input id="jiraToken" type="password" autocomplete="new-password" spellcheck="false" placeholder="Jeton d'API">
+              <button type="button" class="btn" id="toggleJiraToken">Afficher</button>
+            </div>
+          </div>
+        </div>
+        <p class="jira-status" id="jiraStatus">Host ou token manquant.</p>
+      </article>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div id="editor" class="modal" hidden>
+  <div class="backdrop" data-close></div>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <h3 id="editorTitle">Ajouter</h3>
+    <form id="editorForm">
+      <div class="field" id="nameField" style="margin-top:0">
+        <label id="nameLabel" for="editorName">Nom</label>
+        <input id="editorName" required maxlength="80" autocomplete="off">
+      </div>
+      <div class="field" id="teamField" hidden>
+        <label for="editorTeam">Équipe</label>
+        <select id="editorTeam"></select>
+      </div>
+      <div class="dates" id="dateFields" hidden>
+        <div>
+          <label for="editorStart">Début</label>
+          <input id="editorStart" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="jj/mm/aaaa">
+          <span class="hint">Optionnel</span>
+        </div>
+        <div>
+          <label for="editorEnd">Fin</label>
+          <input id="editorEnd" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="jj/mm/aaaa">
+          <span class="hint">Optionnel</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Annuler</button>
+        <button type="submit" class="btn primary" id="editorSubmit">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="store.js"></script>
+<script>
+let store = LeadStore.load();
+let editing = null;
+
+function esc(value) {
+  const d = document.createElement('div');
+  d.textContent = String(value ?? '');
+  return d.innerHTML;
+}
+function teamName(id) {
+  return store.teams.find(t => t.id === id)?.name || '—';
+}
+function toInputDate(value) {
+  const day = LeadStore.normalizeDay(value);
+  if (!day) return '';
+  const [y, m, d] = day.split('-');
+  return `${d}/${m}/${y}`;
+}
+function readDate(id) {
+  return LeadStore.parseFlexibleDate(document.getElementById(id).value);
+}
+function render() {
+  const periodBody = document.getElementById('periodRows');
+  periodBody.innerHTML = store.periods.length
+    ? [...store.periods].reverse().map(p => `<tr>
+        <td>${esc(p.label)}</td><td>${esc(LeadStore.formatDay(p.startDate))}</td><td>${esc(LeadStore.formatDay(p.endDate))}</td>
+        <td class="actions-cell"><a href="#" class="text-link" data-edit="period" data-id="${esc(p.id)}">Modifier</a><a href="#" class="text-link danger" data-delete="period" data-id="${esc(p.id)}">Supprimer</a></td>
+      </tr>`).join('')
+    : '<tr><td class="empty" colspan="4">Aucune période.</td></tr>';
+
+  const teamBody = document.getElementById('teamRows');
+  const teams = [...store.teams].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+  teamBody.innerHTML = teams.length
+    ? teams.map(t => `<tr>
+        <td>${esc(t.name)}</td><td>${store.people.filter(p => p.teamId === t.id).length}</td>
+        <td class="actions-cell"><a href="#" class="text-link" data-edit="team" data-id="${esc(t.id)}">Modifier</a><a href="#" class="text-link danger" data-delete="team" data-id="${esc(t.id)}">Supprimer</a></td>
+      </tr>`).join('')
+    : '<tr><td class="empty" colspan="3">Aucune équipe.</td></tr>';
+
+  const people = [...store.people].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+  const peopleBody = document.getElementById('peopleRows');
+  peopleBody.innerHTML = people.length
+    ? people.map(p => `<tr>
+        <td>${esc(p.name)}</td><td>${esc(teamName(p.teamId))}</td><td>${esc(LeadStore.formatDay(p.startDate))}</td><td>${esc(LeadStore.formatDay(p.endDate))}</td>
+        <td class="actions-cell"><a href="#" class="text-link" data-edit="person" data-id="${esc(p.id)}">Modifier</a><a href="#" class="text-link danger" data-delete="person" data-id="${esc(p.id)}">Supprimer</a></td>
+      </tr>`).join('')
+    : '<tr><td class="empty" colspan="5">Aucun membre.</td></tr>';
+  const teamsCount = store.teams.length;
+  const peopleCount = store.people.length;
+  const periodsCount = store.periods.length;
+  const notesCount = store.weather.notes.length;
+  const skillsCount = store.skillMatrix.skills.length;
+  const curseCount = store.curse.estimations.length;
+  document.getElementById('statTeams').textContent = String(teamsCount);
+  document.getElementById('statPeople').textContent = String(peopleCount);
+  document.getElementById('statPeriods').textContent = String(periodsCount);
+  document.getElementById('statNotes').textContent = String(notesCount);
+  document.getElementById('statSkills').textContent = String(skillsCount);
+  document.getElementById('statCurse').textContent = String(curseCount);
+  syncJiraFields();
+  if (typeof syncPeek === 'function') syncPeek();
+  LeadStore.save(store);
+}
+function paintJiraStatus() {
+  const el = document.getElementById('jiraStatus');
+  const ready = !!(store.jira.host && store.jira.token);
+  el.textContent = ready ? 'Host et token enregistrés.' : 'Host ou token manquant.';
+  el.classList.toggle('is-on', ready);
+}
+function syncJiraFields() {
+  const host = document.getElementById('jiraHost');
+  const token = document.getElementById('jiraToken');
+  if (document.activeElement !== host) host.value = store.jira.host || '';
+  if (document.activeElement !== token) token.value = store.jira.token || '';
+  paintJiraStatus();
+}
+function persistJira() {
+  const hostInput = document.getElementById('jiraHost');
+  const tokenInput = document.getElementById('jiraToken');
+  store.jira = {
+    host: hostInput.value.trim().replace(/\/+$/, ''),
+    token: tokenInput.value.trim()
+  };
+  LeadStore.save(store);
+  paintJiraStatus();
+}
+
+function fillTeamSelect(selected) {
+  const select = document.getElementById('editorTeam');
+  select.innerHTML = '<option value="">—</option>' + [...store.teams]
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
+    .map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  select.value = selected || '';
+}
+function openEditor(kind, id) {
+  editing = { kind, id: id || null };
+  const titles = { period: id ? 'Modifier la période' : 'Nouvelle période', team: id ? 'Modifier l\'équipe' : 'Nouvelle équipe', person: id ? 'Modifier le membre' : 'Nouveau membre' };
+  document.getElementById('editorTitle').textContent = titles[kind];
+  document.getElementById('nameLabel').textContent = kind === 'period' ? 'Libellé' : 'Nom';
+  document.getElementById('teamField').hidden = kind !== 'person';
+  document.getElementById('dateFields').hidden = kind === 'team';
+  const name = document.getElementById('editorName');
+  name.value = '';
+  document.getElementById('editorStart').value = '';
+  document.getElementById('editorEnd').value = '';
+  if (kind === 'period' && id) {
+    const item = store.periods.find(p => p.id === id);
+    name.value = item ? item.label : '';
+    document.getElementById('editorStart').value = toInputDate(item && item.startDate);
+    document.getElementById('editorEnd').value = toInputDate(item && item.endDate);
+  } else if (kind === 'team' && id) {
+    const item = store.teams.find(t => t.id === id);
+    name.value = item ? item.name : '';
+  } else if (kind === 'person') {
+    const item = id ? store.people.find(p => p.id === id) : null;
+    fillTeamSelect(item && item.teamId);
+    if (item) {
+      name.value = item.name;
+      document.getElementById('editorStart').value = toInputDate(item.startDate);
+      document.getElementById('editorEnd').value = toInputDate(item.endDate);
+    }
+  }
+  document.getElementById('editor').hidden = false;
+  name.focus();
+}
+function closeEditor() {
+  document.getElementById('editor').hidden = true;
+  editing = null;
+}
+document.getElementById('addPeriod').addEventListener('click', e => { e.preventDefault(); openEditor('period'); });
+document.getElementById('addTeam').addEventListener('click', e => { e.preventDefault(); openEditor('team'); });
+document.getElementById('addPerson').addEventListener('click', e => { e.preventDefault(); openEditor('person'); });
+document.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeEditor));
+const dataSheet = document.getElementById('dataSheet');
+const sheetFace = dataSheet.querySelector('.sheet-face');
+const sheetExtra = dataSheet.querySelector('.sheet-extra');
+const openSettingsBtn = document.getElementById('openSettings');
+function syncPeek() {
+  dataSheet.style.setProperty('--peek', sheetFace.offsetHeight + 'px');
+}
+function setSheetOpen(open) {
+  dataSheet.classList.toggle('is-open', open);
+  sheetExtra.inert = !open;
+  openSettingsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  openSettingsBtn.textContent = open ? 'Réduire' : 'Gérer';
+  if (open) dataSheet.querySelector('.close').focus();
+}
+sheetExtra.inert = true;
+syncPeek();
+window.addEventListener('resize', syncPeek);
+openSettingsBtn.addEventListener('click', () => setSheetOpen(!dataSheet.classList.contains('is-open')));
+document.querySelectorAll('[data-close-settings]').forEach(el => el.addEventListener('click', () => setSheetOpen(false)));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!document.getElementById('editor').hidden) closeEditor();
+  else setSheetOpen(false);
+});
+document.querySelector('.settings').addEventListener('click', event => {
+  const edit = event.target.closest('[data-edit]');
+  const del = event.target.closest('[data-delete]');
+  if (edit) {
+    event.preventDefault();
+    openEditor(edit.dataset.edit, edit.dataset.id);
+    return;
+  }
+  if (!del) return;
+  event.preventDefault();
+  const id = del.dataset.id;
+  if (del.dataset.delete === 'period') {
+    const item = store.periods.find(p => p.id === id);
+    if (!confirm(`Supprimer « ${item ? item.label : 'cette période'} » et les saisies associées ?`)) return;
+    LeadStore.removePeriod(store, id);
+  } else if (del.dataset.delete === 'team') {
+    const item = store.teams.find(t => t.id === id);
+    if (!confirm(`Supprimer « ${item ? item.name : 'cette équipe'} » ? Les membres restent, sans équipe.`)) return;
+    LeadStore.removeTeam(store, id);
+  } else if (del.dataset.delete === 'person') {
+    const item = store.people.find(p => p.id === id);
+    if (!confirm(`Supprimer ${item ? item.name : 'ce membre'} et ses saisies ?`)) return;
+    LeadStore.removePerson(store, id);
+  }
+  render();
+});
+document.getElementById('editorForm').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!editing) return;
+  const name = document.getElementById('editorName').value.trim();
+  if (!name) return;
+  let startDate = null;
+  let endDate = null;
+  if (editing.kind !== 'team') {
+    const start = readDate('editorStart');
+    const end = readDate('editorEnd');
+    if (start.error || end.error) {
+      alert('Date invalide. Laissez vide, ou saisissez jj/mm/aaaa.');
+      return;
+    }
+    startDate = start.value;
+    endDate = end.value;
+    if (startDate && endDate && startDate > endDate) {
+      alert('La date de fin doit être postérieure à la date de début.');
+      return;
+    }
+  }
+  if (editing.kind === 'period') {
+    if (editing.id) {
+      const item = store.periods.find(p => p.id === editing.id);
+      if (item) Object.assign(item, { label: name, startDate, endDate });
+    } else {
+      const id = LeadStore.uid();
+      store.periods.push({ id, label: name, startDate, endDate });
+      store.selectedPeriodId = id;
+    }
+  } else if (editing.kind === 'team') {
+    if (editing.id) {
+      const item = store.teams.find(t => t.id === editing.id);
+      if (item) item.name = name;
+    } else {
+      const id = LeadStore.uid();
+      store.teams.push({ id, name });
+      store.selectedTeamId = id;
+    }
+  } else if (editing.kind === 'person') {
+    const teamId = document.getElementById('editorTeam').value || null;
+    if (editing.id) {
+      const item = store.people.find(p => p.id === editing.id);
+      if (item) Object.assign(item, { name, teamId, startDate, endDate });
+    } else {
+      store.people.push({ id: LeadStore.uid(), name, teamId, startDate, endDate });
+    }
+  }
+  closeEditor();
+  render();
+});
+function download(name, content) {
+  const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+document.getElementById('exportJson').addEventListener('click', () => {
+  download(`boite-outils-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(LeadStore.exportDocument(store), null, 2));
+});
+document.getElementById('jiraHost').addEventListener('input', persistJira);
+document.getElementById('jiraToken').addEventListener('input', persistJira);
+document.getElementById('jiraHost').addEventListener('blur', () => {
+  const input = document.getElementById('jiraHost');
+  input.value = input.value.trim().replace(/\/+$/, '');
+  persistJira();
+});
+document.getElementById('toggleJiraToken').addEventListener('click', () => {
+  const input = document.getElementById('jiraToken');
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  document.getElementById('toggleJiraToken').textContent = show ? 'Masquer' : 'Afficher';
+});
+document.getElementById('importJson').addEventListener('click', () => document.getElementById('jsonImport').click());
+document.getElementById('jsonImport').addEventListener('change', event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const next = LeadStore.parse(reader.result);
+      const raw = JSON.parse(String(reader.result).replace(/^\uFEFF/, ''));
+      if (raw.jira == null) next.jira = store.jira;
+      if (raw.curse == null) next.curse = store.curse;
+      if (raw.monDaily && !localStorage.getItem(DailyStore.KEY)) DailyStore.save(DailyStore.normalize(raw.monDaily));
+      if (confirm('Remplacer les données d\'équipe par ce fichier ?')) {
+        store = next;
+        render();
+      }
+    } catch (e) {
+      alert(`Import impossible : ${e.message}`);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+render();
+</script>
+</body>
+</html>

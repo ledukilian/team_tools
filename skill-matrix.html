@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matrice de compétences · Équipe</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕸️</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --ink:#142238; --muted:#68768b; --line:#dde5ef; --surface:#fff; --canvas:#f4f7fb;
+      --blue:#2f6fed; --blue-dark:#1e4eb3; --green:#1B7A3C; --danger:#b42338;
+      --shadow:0 18px 50px rgba(20,34,56,.10); --radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-width:320px; color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at 8% 2%,#e0edff 0,transparent 30%),
+                 radial-gradient(circle at 94% 8%,#fff0d6 0,transparent 24%),var(--canvas);
+    }
+    button,input,select{font:inherit}
+    .topbar{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);border-bottom:0;box-shadow:0 10px 30px rgba(20,34,56,.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    .topbar-inner{max-width:1420px;margin:0 auto;padding:16px 24px;display:grid;grid-template-columns:auto minmax(220px,1fr) auto;align-items:center;gap:18px 32px}
+    .back{display:inline-flex;align-items:center;gap:10px;margin:0;padding:8px 14px 8px 8px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:.95rem;font-weight:600;text-decoration:none;white-space:nowrap;box-shadow:0 6px 16px rgba(20,34,56,.05)}
+    .back-mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:#eef4ff;border:0;color:var(--blue);font-size:1.05rem;line-height:1}
+    .back:hover{border-color:#c9d7f5;color:var(--blue-dark)}
+    .brand{min-width:0}
+    h1{margin:0;font-size:1.35rem;line-height:1.15;letter-spacing:-.03em;font-weight:650}
+    .version{font-size:.78rem;font-weight:600;letter-spacing:0;color:var(--muted);vertical-align:middle;margin-left:.4em}
+    .brand p,.sub{color:var(--muted);line-height:1.45}
+    .brand p{margin:4px 0 0;font-size:.92rem;max-width:680px}
+    .app{max-width:1420px;margin:0 auto;padding:22px 24px 56px}
+    h2{font-size:1.22rem;margin:0;letter-spacing:-.02em;font-weight:650}
+    .sub{font-size:.92rem;margin:6px 0 0}
+    .card{background:#fff;border:0;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card-pad{padding:24px}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .btn{cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--ink);font-size:.92rem;font-weight:600;background:#fff;transition:.18s ease}
+    .btn:hover{transform:translateY(-1px);border-color:#b8c6d9;box-shadow:0 6px 14px rgba(20,34,56,.08)}
+    .btn.primary{color:#fff;border-color:var(--blue);background:var(--blue)}
+    .btn.primary:hover{background:var(--blue-dark);border-color:var(--blue-dark)}
+    .btn.success{color:#fff;border-color:var(--green);background:var(--green)}
+    .btn.success:hover{background:#156332;border-color:#156332}
+    .btn.danger{color:var(--danger)}
+    .btn.clear-table{padding:2px 0;border:0;outline:0;border-radius:0;background:transparent;box-shadow:none;color:#a3aebc;font-size:.72rem;line-height:1.2;font-weight:600}
+    .btn.clear-table:hover,.btn.clear-table:focus{transform:none;box-shadow:none;border:0;outline:0;background:transparent;color:#68768b}
+    .text-link{display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-size:.84rem;font-weight:600;text-decoration:none;cursor:pointer;background:none;border:0;padding:0}
+    .text-link:hover{color:var(--blue)} .text-link.danger{color:var(--danger)}
+    .tabs{display:flex;gap:4px;margin:0;padding:5px;border:0;border-radius:16px;background:#eef3f9}
+    .tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin:0;min-height:48px;padding:10px 18px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:inherit;font-size:1rem;font-weight:600;cursor:pointer;white-space:nowrap}
+    .tab[aria-selected="true"]{color:var(--ink);background:#fff;box-shadow:0 4px 14px rgba(20,34,56,.08)}
+    .tab:hover:not(:disabled):not([aria-selected="true"]){color:var(--ink);background:rgba(255,255,255,.7)}
+    .tab:disabled{opacity:.4;cursor:not-allowed}
+    .tab-lock{width:14px;height:14px;flex-shrink:0;display:none}
+    .tab.is-locked .tab-lock{display:block}
+    .context-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    .context-bar .filter{min-width:200px;max-width:300px;height:42px;font-size:.95rem;padding:0 12px}
+    .context-hint{color:var(--muted);font-size:.86rem}
+    .tab-panel[hidden],.context-bar[hidden],#saisiesGrid[hidden],select[hidden]{display:none!important}
+    .chart-wrap.track{height:440px;min-height:360px}
+    .suivi-stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:stretch}
+    .suivi-stack>.card{display:flex;flex-direction:column}
+    .chart-wrap.track.team{flex:1 1 auto;height:auto;min-height:360px;margin-top:14px}
+    .chart-wrap.track.team.is-empty{flex:0 0 auto;height:auto;min-height:160px}
+    .chart-wrap.track.is-empty{height:auto;min-height:160px;display:flex;align-items:center;justify-content:center}
+    .chart-wrap.track.is-empty canvas{display:none}
+    .track-empty{margin:0;text-align:center;color:var(--muted);padding:28px 20px;line-height:1.5}
+    .track-empty[hidden]{display:none}
+    .pickers{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin:14px 0 4px}
+    .pickers > div{min-width:0;padding:8px 10px;border:0;border-radius:14px;background:#f4f7fb}
+    .picker-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+    .picker-label{margin:0;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    .picker-actions{display:flex;gap:8px}
+    .picker-actions .text-link{color:#a3aebc;font-size:.72rem;font-weight:600}
+    .picker-actions .text-link:hover{color:#68768b}
+    .picks{display:flex;flex-wrap:wrap;gap:4px}
+    .pick{cursor:pointer;border:0;border-radius:999px;padding:2px 9px;background:#fff;color:var(--muted);font:inherit;font-size:.72rem;font-weight:600;line-height:1.45;box-shadow:0 1px 2px rgba(20,34,56,.06)}
+    .pick.is-on{color:var(--blue-dark);background:#e8f0ff;box-shadow:inset 0 0 0 1px #c9d8f8}
+    .pick-empty{color:var(--muted);font-size:.72rem}
+    .landing{display:grid;gap:18px}
+    .land-detail h2{font-size:1.5rem}
+    .land-detail h3{margin:22px 0 0;font-size:1.15rem;font-weight:650;letter-spacing:-.02em}
+    .how-lead{margin:10px 0 0;font-size:1.08rem;line-height:1.5;color:var(--ink)}
+    .how-lead strong{font-weight:700}
+    input[type=file]{display:none}
+    .overview-grid{display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1.7fr);gap:16px;margin-bottom:16px;align-items:start}
+    .profile-card{min-width:0;overflow:hidden}
+    .profile-head{padding:22px 22px 16px;border-bottom:1px solid var(--line)}
+    .profile-head .filter{width:100%;margin-top:16px}
+    .score-list{display:flex;flex-direction:column}
+    .score-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line)}
+    .score-row:last-child{border-bottom:0}
+    .score-skill{min-width:0}
+    .score-name{font-size:.95rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .score-bar{height:6px;background:#edf1f6;border-radius:999px;overflow:hidden;margin-top:7px}
+    .score-bar i{display:block;height:100%;width:0;border-radius:inherit;background:var(--score-color)}
+    .score-value{font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;min-width:48px;text-align:right}
+    .score-empty{padding:28px 22px;color:var(--muted);font-size:.86rem;line-height:1.5;text-align:center}
+    .chart-card{min-width:0}
+    .chart-head{padding:22px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+    .filter{height:42px;min-width:200px;border:1px solid var(--line);border-radius:12px;padding:0 12px;color:var(--ink);background:white;outline:0;font-size:.95rem}
+    .filter:focus,.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
+    .chart-wrap{position:relative;height:460px;min-height:380px;padding:8px 16px 16px}
+    .chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:40px;z-index:2;pointer-events:none}
+    .chart-empty[hidden]{display:none}
+    .legend-zones{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:.84rem;color:var(--muted)}
+    .zone{display:flex;align-items:center;gap:5px}.dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+    .matrix-card{margin-bottom:16px}
+    .paths-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;align-items:stretch}
+    .path-card{min-width:0;overflow:hidden;display:flex;flex-direction:column}
+    .path-head{padding:22px 22px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+    .path-head .filter{width:100%;margin-top:4px}
+    .path-list{display:flex;flex-direction:column;flex:1}
+    .path-row{display:grid;gap:8px;padding:14px 22px;border-bottom:1px solid var(--line)}
+    .path-row:last-child{border-bottom:0}
+    .path-row.individual{grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:14px;align-items:center}
+    .path-row.individual .path-mentor{padding-top:0;text-align:right}
+    .path-row.individual .path-mentor-line{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;min-width:0}
+    .path-row.individual .path-mentor-name{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .path-row.individual .path-mentor-score{margin-top:0;flex:0 0 auto}
+    .path-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+    .path-skill{min-width:0}
+    .path-name{font-size:.9rem;font-weight:600}
+    .path-meta{font-size:.76rem;color:var(--muted);margin-top:4px;line-height:1.4}
+    .path-score{font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+    .path-main{display:flex;align-items:center;gap:12px;min-width:0}
+    .path-main .path-skill{flex:1;min-width:0}
+    .path-main .path-score{flex:0 0 auto}
+    .path-mentor{min-width:0;padding-top:2px}
+    .path-mentor-label{font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    .path-mentor-name{font-size:.84rem;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .path-mentor-score{font-size:.74rem;color:var(--muted);margin-top:2px}
+    .path-badge{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:6px;margin-top:6px}
+    .path-badge.critical{background:#f1f5f9;color:#475569}
+    .path-badge.fragile{background:#fef2f2;color:#b91c1c}
+    .path-badge.low{background:#fefce8;color:#a16207}
+    .path-empty{padding:28px 22px;color:var(--muted);font-size:.86rem;line-height:1.5;text-align:center;flex:1;display:flex;align-items:center;justify-content:center}
+    .matrix-head{padding:24px 24px 18px}
+    .table-wrap{overflow:auto;border-top:1px solid var(--line)}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:700px}
+    th{padding:12px 11px;text-align:center;font-size:.72rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;background:#f8fafc;font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap}
+    th:first-child{text-align:left;position:sticky;left:0;z-index:3}
+    td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:center;background:#fff}
+    td:first-child{position:sticky;left:0;z-index:2;text-align:left;font-weight:600;min-width:180px}
+    tr:last-child td{border-bottom:0}
+    .clear-row td{background:#fff;padding-top:6px;padding-bottom:10px}
+    .rating{display:block;width:58px;height:38px;margin:0 auto;text-align:center;border:1px solid #edf1f5;border-radius:10px;outline:0;font-weight:700;color:var(--ink);background:#fafbfd;padding:0;-moz-appearance:textfield;appearance:textfield}
+    .rating:hover{border-color:#dfe6ee;background:#fff}
+    .rating:focus{border-color:#c9d7e8;background:#fff;box-shadow:0 0 0 3px rgba(47,111,237,.08)}
+    .rating::-webkit-outer-spin-button,.rating::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    .rating-cell{display:flex;flex-direction:column;align-items:center;gap:3px}
+    .prev-note{display:flex;flex-direction:column;align-items:center;line-height:1.05;max-width:72px}
+    .prev-note b{color:#b7c0cb;font-size:.72rem;font-weight:700;font-variant-numeric:tabular-nums}
+    .prev-note span{color:#c5ced8;font-size:.58rem;font-weight:600;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .rating.red{color:#ef4444}
+    .rating.orange{color:#f97316}
+    .rating.yellow{color:#eab308}
+    .rating.green{color:#22c55e}
+    .rating.expert{color:#1b9e4b}
+    .skill-label{display:flex;align-items:center;justify-content:center;gap:6px;text-transform:none;letter-spacing:0;font-size:.86rem;color:var(--ink)}
+    .bottom-actions{padding:16px 24px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    .empty-row{padding:32px!important;color:var(--muted);text-align:center!important;position:static!important}
+    .modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center}
+    .modal[hidden]{display:none!important}
+    .modal-backdrop{position:absolute;inset:0;background:rgba(20,34,56,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+    .modal-dialog{position:relative;z-index:1;width:min(720px,calc(100% - 32px));max-height:calc(100vh - 40px);overflow:auto;background:var(--surface);border:0;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+    .modal-dialog.scale-dialog{width:min(980px,calc(100% - 32px))}
+    .modal-dialog h2{margin-bottom:18px}
+    .form-row{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:end}
+    .skill-form{grid-template-columns:84px 1fr auto}
+    .compact-field{display:flex;flex-direction:column;gap:5px;min-width:0}
+    .compact-label{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    .field{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;padding:0 10px;color:var(--ink);outline:0;background:#fff}
+    .item-list{display:grid;gap:8px;margin-top:18px}
+    .item{display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;border-radius:14px;padding:10px 12px;background:#f4f7fb}
+    .item-name{font-weight:600}.item-meta{color:var(--muted);font-size:.78rem}
+    .icon-btn{cursor:pointer;border:0;background:transparent;color:var(--danger);font-size:1rem;padding:6px;border-radius:8px}
+    .icon-btn:hover{background:#fff0f2}
+    .modal-actions{display:flex;justify-content:flex-end;margin-top:18px}
+    .footer-note{font-size:.76rem;color:var(--muted);margin-left:auto}
+    .scale-note{margin-top:16px;padding:18px 20px;border-radius:14px;background:#fffbeb;border:0;font-size:.98rem;line-height:1.5;color:var(--ink)}
+    .scale-note strong{font-weight:700;color:#ca8a04}
+    .scale-note-list{margin:8px 0 0;padding:0 0 0 1.15em;display:grid;gap:6px}
+    .scale-note-list li{color:var(--ink)}
+    .scale-note-list strong{font-weight:700;color:#ca8a04}
+    .zone-board{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+    .zone-tile{background:#f6f8fb;border:0;border-top:4px solid var(--zone);border-radius:0 0 14px 14px;padding:16px 14px 18px;min-width:0}
+    .zone-tile.red{--zone:#ef4444}
+    .zone-tile.orange{--zone:#f97316}
+    .zone-tile.yellow{--zone:#eab308}
+    .zone-tile.green{--zone:#22c55e}
+    .zone-tile.expert{--zone:#1b9e4b}
+    .zone-tile strong{display:block;font-size:1rem;font-weight:650;letter-spacing:-.02em}
+    .zone-tile span{display:block;margin-top:8px;font-size:.88rem;color:var(--muted);line-height:1.45}
+    .land-zones h2{font-size:1.5rem}
+    .scale-list{list-style:none;margin:18px 0 0;padding:0;display:grid;grid-template-columns:1fr;gap:8px}
+    .scale-item{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center}
+    .scale-level{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:#f1f5f9;color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums;font-size:1.05rem}
+    .scale-level.red{background:#fef2f2;color:#b91c1c}
+    .scale-level.orange{background:#fff7ed;color:#c2410c}
+    .scale-level.yellow{background:#fefce8;color:#a16207}
+    .scale-level.green{background:#f0fdf4;color:#15803d}
+    .scale-level.expert{background:#dcfce7;color:#14532d}
+    .scale-text{font-size:.98rem;line-height:1.4}
+    .scale-text strong{font-weight:600}
+    .scale-text span{color:var(--muted)}
+    @media(max-width:1100px){
+      .zone-board{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:760px){
+      .topbar-inner{grid-template-columns:1fr;gap:14px;padding:14px}
+      .tabs{flex-wrap:wrap}
+      .tab{flex:1 1 auto}
+      .app{padding:16px 14px 40px}.overview-grid,.paths-grid,.pickers,.zone-board{grid-template-columns:1fr}
+      .context-bar .filter{width:100%;max-width:none;min-width:0}
+      .chart-wrap{height:520px;min-height:420px;padding:8px 8px 18px}.chart-head{padding:18px 18px 0}
+      .card-pad,.matrix-head,.path-head{padding:18px}.filter{width:100%}.form-row,.skill-form{grid-template-columns:1fr}
+      .path-row.individual{grid-template-columns:1fr;gap:10px}
+      .path-row.individual .path-mentor{text-align:left}
+      .path-row.individual .path-mentor-line{justify-content:flex-start}
+      .footer-note{width:100%;margin-left:0}
+    }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="back" href="index.html"><span class="back-mark" aria-hidden="true">←</span>Boîte à outils</a>
+    <div class="brand">
+      <h1>Matrice de compétences 🕸️ <span class="version">0.2.0</span></h1>
+      <p>Cartographiez les compétences, visualisez les profils et identifiez les complémentarités de l'équipe.</p>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Navigation">
+      <button type="button" class="tab" role="tab" id="tab-fonctionnement" data-tab="fonctionnement" aria-controls="panel-fonctionnement" aria-selected="true">Comment ça fonctionne</button>
+      <button type="button" class="tab" role="tab" id="tab-saisies" data-tab="saisies" aria-controls="panel-saisies" aria-selected="false">Saisir des notes</button>
+      <button type="button" class="tab" role="tab" id="tab-suivi" data-tab="suivi" aria-controls="panel-suivi" aria-selected="false">
+        Suivi
+        <svg class="tab-lock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+<main class="app">
+
+  <div class="context-bar" hidden>
+    <select id="periodSelect" class="filter" aria-label="Période"></select>
+    <select id="teamSelect" class="filter" aria-label="Équipe"></select>
+    <span id="contextHintBar" class="context-hint" hidden></span>
+  </div>
+
+  <section class="tab-panel" id="panel-fonctionnement" data-panel="fonctionnement" role="tabpanel" aria-labelledby="tab-fonctionnement">
+    <article class="landing">
+      <section class="card card-pad land-detail">
+        <h2>Comment ça fonctionne</h2>
+        <p class="how-lead">Chaque personne s'évalue de <strong>1 à 10</strong> sur un ensemble de compétences, une note par compétence.</p>
+        <h3>Détail des notes</h3>
+        <p class="sub">Repères fins pour choisir une note.</p>
+        <ol class="scale-list">
+          <li class="scale-item"><span class="scale-level red">1</span><div class="scale-text"><strong>Aucune familiarité</strong> <span>/ Jamais fait auparavant</span></div></li>
+          <li class="scale-item"><span class="scale-level orange">2</span><div class="scale-text"><strong>Connaissance des bases</strong> <span>/ En exploration avec un accompagnement rapproché</span></div></li>
+          <li class="scale-item"><span class="scale-level orange">3</span><div class="scale-text"><strong>Compréhension élémentaire</strong> <span>/ En apprentissage avec un accompagnement régulier</span></div></li>
+          <li class="scale-item"><span class="scale-level yellow">4</span><div class="scale-text"><strong>Connaissances pratiques de base</strong> <span>/ Mise en application avec un certain accompagnement</span></div></li>
+          <li class="scale-item"><span class="scale-level yellow">5</span><div class="scale-text"><strong>Bonne maîtrise en construction</strong> <span>/ Travail quasi autonome sur des tâches courantes</span></div></li>
+          <li class="scale-item"><span class="scale-level green">6</span><div class="scale-text"><strong>Solides connaissances pratiques</strong> <span>/ Travail autonome dans la plupart des situations</span></div></li>
+          <li class="scale-item"><span class="scale-level green">7</span><div class="scale-text"><strong>Maîtrise avancée</strong> <span>/ À l’aise dans des contextes variés</span></div></li>
+          <li class="scale-item"><span class="scale-level green">8</span><div class="scale-text"><strong>Expertise pratique approfondie</strong> <span>/ Capacité à guider d’autres personnes si besoin</span></div></li>
+          <li class="scale-item"><span class="scale-level expert">9</span><div class="scale-text"><strong>Expertise très étendue</strong> <span>/ Personne de référence reconnue</span></div></li>
+          <li class="scale-item"><span class="scale-level expert">10</span><div class="scale-text"><strong>Expertise de référence</strong> <span>/ Capacité à définir une direction et à permettre aux autres d’avancer</span></div></li>
+        </ol>
+      </article>
+      <article class="card card-pad scale-panel">
+        <h3>Zones de lecture</h3>
+        <p class="sub">Ce que les couleurs du radar et de la matrice résument. À partir de 6, on est opérationnel.</p>
+        <ul class="zone-board">
+          <li class="zone-tile red">
+            <strong>1 · Non opérationnel</strong>
+            <span>Aucune connaissance du sujet. La personne ne l’a jamais abordé et ne peut pas s’en servir.</span>
+          </li>
+          <li class="zone-tile orange">
+            <strong>2 à 3 · En exploration</strong>
+            <span>Découverte et premiers pas : on avance avec un soutien régulier, c’est une phase d’apprentissage normale.</span>
+          </li>
+          <li class="zone-tile yellow">
+            <strong>4 à 5 · En progression</strong>
+            <span>On commence à produire, encore avec un appui ponctuel. Le seuil opérationnel n’est pas loin.</span>
+          </li>
+          <li class="zone-tile green">
+            <strong>6 à 8 · Opérationnel</strong>
+            <span>Capable de porter la compétence au quotidien, de façon autonome, dans la plupart des situations rencontrées.</span>
+          </li>
+          <li class="zone-tile expert">
+            <strong>9 à 10 · Expertise</strong>
+            <span>Niveau de référence : on peut guider les autres et faire évoluer la pratique. Ce n’est pas un objectif pour tout le monde.</span>
+          </li>
+        </ul>
+        <div class="scale-note">
+          <strong>💡 L'idée derrière cette échelle :</strong>
+          <ul class="scale-note-list">
+            <li>L’objectif utile, c’est d’atteindre au moins <strong>6</strong> : être opérationnel·le sur la compétence, capable de travailler en autonomie dans la plupart des situations.</li>
+            <li>En dessous de 6, on est encore en montée en compétence : c’est normal et attendu, ce n'est pas un défaut. C'est utile à cartographier pour cibler l’accompagnement.</li>
+            <li>Au-delà de 8, c’est du confort et de la profondeur : se projeter comme référent·e sur une techno, notamment d’un point de vue carrière.</li>
+          </ul>
+        </div>
+      </section>
+    </article>
+  </section>
+
+  <section class="tab-panel" id="panel-saisies" data-panel="saisies" role="tabpanel" aria-labelledby="tab-saisies" hidden>
+  <div id="saisiesGrid">
+  <section class="overview-grid">
+    <article class="card profile-card">
+      <div class="profile-head">
+        <div>
+          <h2>Profil de compétences</h2>
+          <p class="sub">Scores individuels ou moyenne de l'équipe.</p>
+        </div>
+        <select id="personFilter" class="filter" aria-label="Filtrer le profil"></select>
+      </div>
+      <div id="scoreList" class="score-list"></div>
+    </article>
+
+    <article class="card chart-card">
+      <div class="chart-head">
+        <div>
+          <h2>Radar des compétences</h2>
+          <p class="sub">Vue synthétique du profil sélectionné.</p>
+          <div class="legend-zones">
+            <span class="zone"><i class="dot" style="background:#ef4444"></i>1 · Non opérationnel</span>
+            <span class="zone"><i class="dot" style="background:#f97316"></i>2 à 3 · En exploration</span>
+            <span class="zone"><i class="dot" style="background:#eab308"></i>4 à 5 · En progression</span>
+            <span class="zone"><i class="dot" style="background:#22c55e"></i>6 à 8 · Opérationnel</span>
+            <span class="zone"><i class="dot" style="background:#1b9e4b"></i>9 à 10 · Expertise</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="skillChart"></canvas>
+        <div id="chartEmpty" class="chart-empty">Ajoutez au moins 3 compétences et une personne pour afficher le radar.</div>
+      </div>
+    </article>
+  </section>
+
+  <article class="card matrix-card">
+    <div class="matrix-head toolbar">
+      <div>
+        <h2>Matrice de compétences</h2>
+        <p class="sub">Saisissez une note de 1 à 10. Un champ vide efface la note. Le radar se met à jour instantanément.</p>
+      </div>
+      <button class="btn primary" id="manageSkills" type="button">+ Compétence</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead id="matrixHead"></thead>
+        <tbody id="matrixBody"></tbody>
+      </table>
+    </div>
+    <div class="bottom-actions">
+      <span class="footer-note" id="contextHint">Les équipes, les membres et les périodes se gèrent depuis la boîte à outils.</span>
+    </div>
+  </article>
+
+  <section class="paths-grid">
+    <article class="card path-card">
+      <div class="path-head">
+        <div>
+          <h2>Trajectoire individuelle</h2>
+          <p class="sub">Priorités perso et le pair le plus adapté.</p>
+        </div>
+        <select id="pathPerson" class="filter" aria-label="Personne pour la trajectoire"></select>
+      </div>
+      <div id="pathList" class="path-list"></div>
+    </article>
+
+    <article class="card path-card">
+      <div class="path-head">
+        <div>
+          <h2>Trajectoire d'équipe</h2>
+          <p class="sub">Angles morts, points uniques et compétences sous le seuil.</p>
+        </div>
+      </div>
+      <div id="teamPathList" class="path-list"></div>
+    </article>
+  </section>
+  </div>
+  </section>
+
+  <section class="tab-panel" id="panel-suivi" data-panel="suivi" role="tabpanel" aria-labelledby="tab-suivi" hidden>
+    <div class="suivi-stack">
+    <article class="card card-pad">
+      <div class="chart-head" style="padding:0">
+        <div>
+          <h2>Évolution individuelle et par compétence</h2>
+          <div class="legend-zones">
+            <span class="zone"><i class="dot" style="background:#ef4444"></i>1 · Non opérationnel</span>
+            <span class="zone"><i class="dot" style="background:#f97316"></i>2 à 3 · En exploration</span>
+            <span class="zone"><i class="dot" style="background:#eab308"></i>4 à 5 · En progression</span>
+            <span class="zone"><i class="dot" style="background:#22c55e"></i>6 à 8 · Opérationnel</span>
+            <span class="zone"><i class="dot" style="background:#1b9e4b"></i>9 à 10 · Expertise</span>
+          </div>
+        </div>
+      </div>
+      <div class="pickers">
+        <div>
+          <div class="picker-head">
+            <p class="picker-label">Personnes</p>
+            <div class="picker-actions">
+              <button type="button" class="text-link" id="peopleAll">Tous</button>
+              <button type="button" class="text-link" id="peopleNone">Aucun</button>
+            </div>
+          </div>
+          <div id="peoplePicks" class="picks"></div>
+        </div>
+        <div>
+          <div class="picker-head">
+            <p class="picker-label">Compétences</p>
+            <div class="picker-actions">
+              <button type="button" class="text-link" id="skillsAll">Toutes</button>
+              <button type="button" class="text-link" id="skillsNone">Aucune</button>
+            </div>
+          </div>
+          <div id="skillPicks" class="picks"></div>
+        </div>
+      </div>
+      <div class="chart-wrap track is-empty" id="trackWrap">
+        <canvas id="trackChart" aria-label="Évolution individuelle et par compétence"></canvas>
+        <p class="track-empty" id="trackEmpty">Pas encore de notes à suivre.</p>
+      </div>
+    </article>
+    <article class="card card-pad">
+      <div class="chart-head" style="padding:0">
+        <div>
+          <h2>Moyenne de l'équipe</h2>
+          <p class="sub">Toutes les personnes, sur les compétences choisies.</p>
+        </div>
+      </div>
+      <div class="chart-wrap track team is-empty" id="teamWrap">
+        <canvas id="teamAvgChart" aria-label="Moyenne de l'équipe"></canvas>
+        <p class="track-empty" id="teamEmpty">Pas encore de notes à suivre.</p>
+      </div>
+    </article>
+    </div>
+  </section>
+</main>
+
+<div id="skillsModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-dialog">
+    <h2>Gérer les compétences</h2>
+    <form id="skillForm" class="form-row skill-form">
+      <div class="compact-field">
+        <label class="compact-label" for="skillEmoji">Emoji</label>
+        <input id="skillEmoji" class="field" maxlength="8" required placeholder="🅰️" autocomplete="off">
+      </div>
+      <div class="compact-field">
+        <label class="compact-label" for="skillName">Compétence</label>
+        <input id="skillName" class="field" maxlength="80" required placeholder="Ex. Angular" autocomplete="off">
+      </div>
+      <button class="btn success" type="submit">Ajouter</button>
+    </form>
+    <div id="skillsList" class="item-list"></div>
+    <div class="modal-actions"><button class="btn" type="button" data-close>Fermer</button></div>
+  </div>
+</div>
+
+<script src="store.js"></script>
+<script>
+let store=LeadStore.load();
+function save(){LeadStore.save(store)}
+function roster(){
+  const period=store.periods.find(p=>p.id===store.selectedPeriodId)||null;
+  if(!period) return [];
+  return store.people
+    .filter(p=>p.teamId && p.teamId===store.selectedTeamId)
+    .filter(p=>!period || LeadStore.personCoversPeriod(p, period))
+    .sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
+}
+function writeRating(personId, skillId, value){
+  const periodId=store.selectedPeriodId;
+  if(!periodId) return;
+  if(value==null){
+    const byPerson=store.skillMatrix.ratings[periodId];
+    if(!byPerson||!byPerson[personId]) return;
+    delete byPerson[personId][skillId];
+    if(!Object.keys(byPerson[personId]).length) delete byPerson[personId];
+    if(!Object.keys(byPerson).length) delete store.skillMatrix.ratings[periodId];
+    return;
+  }
+  const byPerson=store.skillMatrix.ratings[periodId]??={};
+  byPerson[personId]??={};
+  byPerson[personId][skillId]=value;
+}
+function esc(v){const d=document.createElement('div');d.textContent=String(v);return d.innerHTML}
+function normalizeRating(v){const n=Number(v);return Number.isFinite(n)?Math.max(1,Math.min(10,Math.round(n))):null}
+function ratingZoneClass(value){
+  const n=Number(value);
+  if(n<2)return 'red';
+  if(n<4)return 'orange';
+  if(n<6)return 'yellow';
+  if(n<9)return 'green';
+  return 'expert';
+}
+
+const zonePlugin={
+  id:'radarZones',
+  beforeDatasetsDraw(chart){
+    const scale=chart.scales.r;
+    if(!scale || !store.skillMatrix.skills.length) return;
+    const ctx=chart.ctx;
+    const bands=[
+      {from:8.5,to:10,color:'rgba(27,158,75,.18)'},
+      {from:5.5,to:8.5,color:'rgba(34,197,94,.12)'},
+      {from:3.5,to:5.5,color:'rgba(234,179,8,.14)'},
+      {from:1.5,to:3.5,color:'rgba(249,115,22,.14)'},
+      {from:0,to:1.5,color:'rgba(239,68,68,.14)'}
+    ];
+    const count=scale._pointLabels.length;
+    if(count<3)return;
+    function poly(value){
+      ctx.beginPath();
+      for(let i=0;i<count;i++){
+        const p=scale.getPointPositionForValue(i,value);
+        i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);
+      }
+      ctx.closePath();
+    }
+    ctx.save();
+    bands.forEach(b=>{
+      poly(b.to); ctx.fillStyle=b.color; ctx.fill();
+      if(b.from>0){
+        ctx.globalCompositeOperation='destination-out';
+        poly(b.from); ctx.fillStyle='#000'; ctx.fill();
+        ctx.globalCompositeOperation='source-over';
+      }
+    });
+    ctx.restore();
+  }
+};
+Chart.register(zonePlugin);
+
+const yScaleBandsPlugin={
+  id:'skillTimeBands',
+  beforeDraw(chart){
+    const cfg=chart.options.plugins&&chart.options.plugins.yScaleBands;
+    const {ctx,chartArea,scales}=chart;
+    const y=scales.y;
+    if(!cfg||!chartArea||!y) return;
+    const bands=[
+      {from:0,to:1.5,color:'rgba(239,68,68,.16)'},
+      {from:1.5,to:3.5,color:'rgba(249,115,22,.16)'},
+      {from:3.5,to:5.5,color:'rgba(234,179,8,.16)'},
+      {from:5.5,to:8.5,color:'rgba(34,197,94,.13)'},
+      {from:8.5,to:10,color:'rgba(27,158,75,.18)'}
+    ];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(chartArea.left,chartArea.top,chartArea.right-chartArea.left,chartArea.bottom-chartArea.top);
+    ctx.clip();
+    bands.forEach(b=>{
+      const top=y.getPixelForValue(b.to);
+      const bottom=y.getPixelForValue(b.from);
+      ctx.fillStyle=b.color;
+      ctx.fillRect(chartArea.left,top,chartArea.right-chartArea.left,Math.max(0,bottom-top));
+    });
+    ctx.restore();
+  }
+};
+const PEOPLE_COLORS=['#2f6fed','#e85d04','#2a9d8f','#9b5de5','#d62828','#0077b6','#f4a261','#6a994e','#c1121f','#023e8a','#bb3e03','#8338ec'];
+const LINE_DASHES=[[],[7,4],[2,3],[10,3,2,3],[4,2],[12,4]];
+let currentTab='fonctionnement';
+const OPEN_TABS=new Set(['fonctionnement','saisies']);
+let trackChart=null;
+let teamAvgChart=null;
+const teamWrapEl=document.getElementById('teamWrap');
+if(window.ResizeObserver && teamWrapEl){
+  new ResizeObserver(()=>{ if(teamAvgChart) teamAvgChart.resize(); }).observe(teamWrapEl);
+}
+const errorBarsPlugin={
+  id:'skillErrorBars',
+  afterDatasetsDraw(chart){
+    const cfg=chart.options.plugins&&chart.options.plugins.errorBars;
+    if(!cfg||!cfg.ranges) return;
+    const {ctx}=chart;
+    const meta=chart.getDatasetMeta(0);
+    if(!meta||!meta.data) return;
+    ctx.save();
+    ctx.strokeStyle=cfg.color||'rgba(47,111,237,.55)';
+    ctx.lineWidth=cfg.lineWidth||1.5;
+    const capW=cfg.capWidth||5;
+    meta.data.forEach((point,i)=>{
+      const range=cfg.ranges[i];
+      if(!range) return;
+      const x=point.x;
+      const yScale=chart.scales.y;
+      const yMin=yScale.getPixelForValue(range.min);
+      const yMax=yScale.getPixelForValue(range.max);
+      ctx.beginPath();
+      ctx.moveTo(x,yMin);
+      ctx.lineTo(x,yMax);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x-capW,yMin);
+      ctx.lineTo(x+capW,yMin);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x-capW,yMax);
+      ctx.lineTo(x+capW,yMax);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+};
+
+const palette=[
+  ['#2f6fed','rgba(47,111,237,.04)'],['#8b5cf6','rgba(139,92,246,.11)'],
+  ['#ec4899','rgba(236,72,153,.10)'],['#0891b2','rgba(8,145,178,.10)'],
+  ['#d97706','rgba(217,119,6,.10)'],['#16a34a','rgba(22,163,74,.10)'],
+  ['#dc2626','rgba(220,38,38,.10)'],['#4f46e5','rgba(79,70,229,.10)']
+];
+const SKILL_COLORS=palette.map(pair=>pair[0]);
+let chart;
+function buildChart(){
+  const canvas=document.getElementById('skillChart');
+  if(chart)chart.destroy();
+  chart=new Chart(canvas,{
+    type:'radar',
+    data:{labels:[],datasets:[]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      animation:{duration:250},
+      interaction:{mode:'nearest',intersect:false},
+      plugins:{
+        legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,padding:18,font:{size:12}}},
+        tooltip:{callbacks:{label:c=>c.raw==null?`${c.dataset.label} : aucune note`:`${c.dataset.label}: ${c.raw}/10`}}
+      },
+      scales:{r:{
+        min:0,max:10,beginAtZero:true,
+        ticks:{stepSize:2.5,showLabelBackdrop:false,color:'#68768b',callback:v=>v===0?'':v},
+        angleLines:{color:'rgba(104,118,139,.18)'},
+        grid:{color:'rgba(104,118,139,.20)'},
+        pointLabels:{color:'#142238',font:{size:12,weight:'600'},padding:14}
+      }},
+      elements:{line:{borderWidth:2},point:{radius:3,hoverRadius:5}}
+    }
+  });
+}
+function skillExtrema(){
+  return store.skillMatrix.skills.map(s=>{
+    const values=roster().map(p=>personScore(p.id,s.id)).filter(v=>v!=null);
+    if(!values.length) return {min:null,max:null};
+    return {min:Math.min(...values),max:Math.max(...values)};
+  });
+}
+function chartDatasets(){
+  const selected=store.skillMatrix.filter||'all';
+  const colors=palette[0];
+  const datasets=[];
+  if(roster().length>=2){
+    const extrema=skillExtrema();
+    datasets.push({
+      label:'Max',
+      data:extrema.map(x=>x.max),
+      borderColor:'rgba(20,34,56,.22)',
+      backgroundColor:'transparent',
+      pointBackgroundColor:'rgba(20,34,56,.28)',
+      pointBorderColor:'transparent',
+      pointRadius:2,pointHoverRadius:3,
+      borderWidth:1.25,borderDash:[4,4],
+      fill:false,order:2
+    });
+    datasets.push({
+      label:'Min',
+      data:extrema.map(x=>x.min),
+      borderColor:'rgba(20,34,56,.16)',
+      backgroundColor:'transparent',
+      pointBackgroundColor:'rgba(20,34,56,.22)',
+      pointBorderColor:'transparent',
+      pointRadius:2,pointHoverRadius:3,
+      borderWidth:1.25,borderDash:[4,4],
+      fill:false,order:2
+    });
+  }
+  if(selected==='all'){
+    datasets.push({
+      label:"Moyenne de l'équipe",
+      data:store.skillMatrix.skills.map(s=>displayedScore('all',s.id)),
+      borderColor:colors[0],backgroundColor:colors[1],pointBackgroundColor:colors[0],
+      pointBorderColor:'#fff',pointHoverBackgroundColor:'#fff',pointHoverBorderColor:colors[0],
+      fill:true,order:1
+    });
+    return datasets;
+  }
+  const p=roster().find(x=>x.id===selected);
+  if(!p)return datasets;
+  datasets.push({
+    label:p.name,
+    data:store.skillMatrix.skills.map(s=>displayedScore(p.id,s.id)),
+    borderColor:colors[0],backgroundColor:colors[1],pointBackgroundColor:colors[0],
+    pointBorderColor:'#fff',pointHoverBackgroundColor:'#fff',pointHoverBorderColor:colors[0],
+    fill:true,order:1
+  });
+  return datasets;
+}
+function displayedScore(personId,skillId){
+  if(personId!=='all') return personScore(personId,skillId);
+  const values=roster().map(p=>personScore(p.id,skillId)).filter(v=>v!=null);
+  if(!values.length) return null;
+  return values.reduce((a,b)=>a+b,0)/values.length;
+}
+function scoreColor(value){
+  if(value < 2) return '#ef4444';
+  if(value < 4) return '#f97316';
+  if(value < 6) return '#eab308';
+  if(value < 9) return '#22c55e';
+  return '#1b9e4b';
+}
+function personScore(personId,skillId){
+  return storedScore(store.selectedPeriodId, personId, skillId);
+}
+function bestMentor(personId,skillId){
+  const mentee=personScore(personId,skillId);
+  let best=null;
+  roster().forEach(p=>{
+    if(p.id===personId)return;
+    const score=personScore(p.id,skillId);
+    if(score<6 || score<=mentee)return;
+    if(!best || score>best.score) best={person:p,score};
+  });
+  return best;
+}
+function skillsToDevelop(personId){
+  return store.skillMatrix.skills
+    .map(s=>({skill:s,score:personScore(personId,s.id)}))
+    .filter(x=>x.score!=null&&x.score<6)
+    .sort((a,b)=>a.score-b.score || a.skill.name.localeCompare(b.skill.name,'fr'));
+}
+function renderPathFilter(){
+  const el=document.getElementById('pathPerson');
+  if(!roster().length){
+    store.skillMatrix.pathPerson=null;
+    el.innerHTML='<option value="">Aucune personne</option>';
+    el.value='';
+    return;
+  }
+  if(!store.skillMatrix.pathPerson || !roster().some(p=>p.id===store.skillMatrix.pathPerson)){
+    store.skillMatrix.pathPerson=roster()[0].id;
+  }
+  el.innerHTML=roster().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  el.value=store.skillMatrix.pathPerson;
+}
+function renderPath(){
+  const el=document.getElementById('pathList');
+  if(!roster().length || !store.skillMatrix.skills.length){
+    el.innerHTML='<div class="path-empty">Ajoutez des personnes et des compétences pour construire une trajectoire.</div>';
+    return;
+  }
+  const personId=store.skillMatrix.pathPerson;
+  const person=roster().find(p=>p.id===personId);
+  if(!person){
+    el.innerHTML='<div class="path-empty">Sélectionnez une personne pour afficher sa trajectoire.</div>';
+    return;
+  }
+  const items=skillsToDevelop(personId);
+  if(!items.length){
+    const scored=store.skillMatrix.skills.some(s=>personScore(personId,s.id)!=null);
+    el.innerHTML=scored
+      ? `<div class="path-empty">${esc(person.name)} a atteint le seuil opérationnel (≥ 6) sur toutes les compétences notées.</div>`
+      : `<div class="path-empty">Aucune note saisie pour ${esc(person.name)} sur cette période.</div>`;
+    return;
+  }
+  const zoneLabel=v=>v<2?'Non opérationnel':v<4?'En exploration':v<6?'En progression':'Opérationnel';
+  el.innerHTML=items.map(({skill,score})=>{
+    const mentor=bestMentor(personId,skill.id);
+    const mentorHtml=mentor
+      ? `<div class="path-mentor-label">🔗 Pair suggéré</div>
+         <div class="path-mentor-line">
+           <div class="path-mentor-name">${esc(mentor.person.name)}</div>
+           <div class="path-mentor-score">${mentor.score}/10</div>
+         </div>`
+      : `<div class="path-mentor-label">🔗 Pair suggéré</div>
+         <div class="path-mentor-name" style="color:var(--muted);font-weight:500">Aucun pair identifié</div>`;
+    return `<div class="path-row individual">
+      <div class="path-main">
+        <div class="path-skill">
+          <div class="path-name">${esc(skill.emoji)} ${esc(skill.name)}</div>
+          <div class="path-meta" style="color:${scoreColor(score)}">${zoneLabel(score)}</div>
+        </div>
+        <div class="path-score" style="color:${scoreColor(score)}">${score}<span style="font-size:.72rem;color:var(--muted);font-weight:600"> / 10</span></div>
+      </div>
+      <div class="path-mentor">${mentorHtml}</div>
+    </div>`;
+  }).join('');
+}
+function teamSkillInsights(){
+  return store.skillMatrix.skills.map(skill=>{
+    const scores=roster().map(p=>({person:p,score:personScore(p.id,skill.id)})).filter(x=>x.score!=null);
+    if(!scores.length){
+      return {skill,avg:null,opsCount:0,severity:0,badge:'⚫ Aucune note',badgeClass:'critical',actionLabel:'À saisir',actionPerson:null,actionScore:null};
+    }
+    const avg=scores.reduce((a,b)=>a+b.score,0)/scores.length;
+    const operational=scores.filter(x=>x.score>=6).sort((a,b)=>b.score-a.score);
+    const strongest=scores.slice().sort((a,b)=>b.score-a.score)[0];
+    const opsCount=operational.length;
+    let severity,badge,badgeClass,actionLabel,actionPerson,actionScore;
+    if(opsCount===0){
+      severity=0; badge='⚫ Angle mort'; badgeClass='critical';
+      actionLabel='À faire monter';
+      actionPerson=strongest.person; actionScore=strongest.score;
+    }else if(opsCount===1){
+      severity=1; badge='🔴 Point unique'; badgeClass='fragile';
+      actionLabel='👑 Référent actuel';
+      actionPerson=operational[0].person; actionScore=operational[0].score;
+    }else if(avg<6){
+      severity=2; badge='🟡 Sous le seuil'; badgeClass='low';
+      actionLabel='💡 Peut diffuser';
+      actionPerson=operational[0].person; actionScore=operational[0].score;
+    }else{
+      return null;
+    }
+    return {skill,avg,opsCount,severity,badge,badgeClass,actionLabel,actionPerson,actionScore};
+  }).filter(Boolean).sort((a,b)=>a.severity-b.severity || a.avg-b.avg || a.skill.name.localeCompare(b.skill.name,'fr'));
+}
+function renderTeamPath(){
+  const el=document.getElementById('teamPathList');
+  if(!roster().length || !store.skillMatrix.skills.length){
+    el.innerHTML='<div class="path-empty">Ajoutez des personnes et des compétences pour analyser l\'équipe.</div>';
+    return;
+  }
+  const items=teamSkillInsights();
+  if(!items.length){
+    el.innerHTML='<div class="path-empty">Bonne couverture : chaque compétence a au moins 2 personnes opérationnelles et une moyenne ≥ 6.</div>';
+    return;
+  }
+  el.innerHTML=items.map(item=>`<div class="path-row individual">
+    <div class="path-main">
+      <div class="path-skill">
+        <div class="path-name">${esc(item.skill.emoji)} ${esc(item.skill.name)}</div>
+        <div class="path-meta">${item.opsCount} opérationnel${item.opsCount>1?'s':''} sur ${roster().length}</div>
+        <span class="path-badge ${item.badgeClass}">${item.badge}</span>
+      </div>
+      <div class="path-score" style="color:${item.avg==null?'var(--muted)':scoreColor(item.avg)}">${item.avg==null?'—':item.avg.toFixed(1)}<span style="font-size:.72rem;color:var(--muted);font-weight:600">${item.avg==null?'':' / 10'}</span></div>
+    </div>
+    <div class="path-mentor">
+      <div class="path-mentor-label">${esc(item.actionLabel)}</div>
+      ${item.actionPerson?`<div class="path-mentor-line">
+        <div class="path-mentor-name">${esc(item.actionPerson.name)}</div>
+        <div class="path-mentor-score">${item.actionScore}/10</div>
+      </div>`:`<div class="path-mentor-name" style="color:var(--muted);font-weight:500">Personne n'a noté cette compétence.</div>`}
+    </div>
+  </div>`).join('');
+}
+function renderScoreList(){
+  const el=document.getElementById('scoreList');
+  if(!store.skillMatrix.skills.length || !roster().length){
+    el.innerHTML='<div class="score-empty">Ajoutez des personnes et des compétences pour afficher les scores.</div>';
+    return;
+  }
+  const selected=store.skillMatrix.filter||'all';
+  el.innerHTML=store.skillMatrix.skills.map(s=>{
+    const value=displayedScore(selected,s.id);
+    const shown=value==null?'—':selected==='all'?value.toFixed(1):String(Math.round(value));
+    return `<div class="score-row">
+      <div class="score-skill">
+        <div class="score-name">${esc(s.emoji)} ${esc(s.name)}</div>
+        <div class="score-bar"><i style="width:${value==null?0:value*10}%;--score-color:${value==null?'#d5dde6':scoreColor(value)}"></i></div>
+      </div>
+      <div class="score-value"${value==null?' style="color:var(--muted)"':''}>${shown}<span style="font-size:.72rem;color:var(--muted);font-weight:600">${value==null?'':' / 10'}</span></div>
+    </div>`;
+  }).join('');
+}
+function renderChart(){
+  const ready=store.skillMatrix.skills.length>=3 && roster().length>0;
+  document.getElementById('chartEmpty').hidden=ready;
+  chart.data.labels=store.skillMatrix.skills.map(s=>`${s.emoji} ${s.name}`);
+  chart.data.datasets=ready?chartDatasets():[];
+  chart.update();
+}
+function renderFilter(){
+  const el=document.getElementById('personFilter');
+  if(store.skillMatrix.filter!=='all'&&!roster().some(p=>p.id===store.skillMatrix.filter))store.skillMatrix.filter='all';
+  el.innerHTML=`<option value="all">Toute l'équipe</option>`+roster().map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  el.value=store.skillMatrix.filter||'all';
+}
+function renderMatrix(){
+  const head=document.getElementById('matrixHead'),body=document.getElementById('matrixBody');
+  head.innerHTML=`<tr><th>Personne</th>${store.skillMatrix.skills.map(s=>`<th><span class="skill-label">${esc(s.emoji)} ${esc(s.name)}</span></th>`).join('')}</tr>`;
+  if(!roster().length || !store.skillMatrix.skills.length){
+    body.innerHTML=`<tr><td class="empty-row" colspan="${Math.max(1,store.skillMatrix.skills.length+1)}">${roster().length?'Ajoutez une compétence pour construire la matrice.':'Ajoutez une équipe, des membres et une période depuis la boîte à outils.'}</td></tr>`;
+    return;
+  }
+  body.innerHTML=roster().map(p=>`<tr>
+    <td>${esc(p.name)}</td>
+    ${store.skillMatrix.skills.map(s=>{
+      const value=personScore(p.id, s.id);
+      const prev=lastEnteredScore(p.id, s.id);
+      const hint=prev
+        ? `<div class="prev-note" title="${esc(prev.period.label)} : ${prev.score}"><b>${prev.score}</b><span>${esc(prev.period.label)}</span></div>`
+        : '';
+      return `<td><div class="rating-cell"><input class="rating${value==null?'':` ${ratingZoneClass(value)}`}" type="number" min="1" max="10" step="1" value="${value==null?'':value}" data-person="${esc(p.id)}" data-skill="${esc(s.id)}" aria-label="${esc(p.name)} - ${esc(s.name)}">${hint}</div></td>`;
+    }).join('')}
+  </tr>`).join('')+`<tr class="clear-row"><td><button type="button" class="btn clear-table" data-clear-table>Nettoyer le tableau</button></td>${store.skillMatrix.skills.map(()=>'<td></td>').join('')}</tr>`;
+}
+function clearCurrentTable(){
+  const periodId=store.selectedPeriodId;
+  const byPerson=periodId&&store.skillMatrix.ratings[periodId];
+  if(!byPerson) return;
+  const skillIds=new Set(store.skillMatrix.skills.map(s=>s.id));
+  roster().forEach(person=>{
+    const scores=byPerson[person.id];
+    if(!scores) return;
+    skillIds.forEach(id=>delete scores[id]);
+    if(!Object.keys(scores).length) delete byPerson[person.id];
+  });
+  if(!Object.keys(byPerson).length) delete store.skillMatrix.ratings[periodId];
+}
+function lastEnteredScore(personId, skillId){
+  const ordered=periodsInTime();
+  const index=ordered.findIndex(p=>p.id===store.selectedPeriodId);
+  for(let i=index-1;i>=0;i--){
+    const score=storedScore(ordered[i].id, personId, skillId);
+    if(score!=null) return {period:ordered[i], score};
+  }
+  return null;
+}
+function renderContext(){
+  const periodSelect=document.getElementById('periodSelect');
+  const teamSelect=document.getElementById('teamSelect');
+  const periods=[...store.periods].reverse();
+  periodSelect.innerHTML=periods.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('');
+  periodSelect.disabled=!periods.length;
+  if(store.selectedPeriodId&&periods.some(p=>p.id===store.selectedPeriodId)) periodSelect.value=store.selectedPeriodId;
+  const teams=[...store.teams].sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
+  teamSelect.innerHTML=teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  teamSelect.disabled=!teams.length;
+  if(store.selectedTeamId&&teams.some(t=>t.id===store.selectedTeamId)) teamSelect.value=store.selectedTeamId;
+  const hint=document.getElementById('contextHint');
+  if(!store.periods.length) hint.textContent='Ajoutez une période depuis la boîte à outils.';
+  else if(!store.teams.length) hint.textContent='Ajoutez une équipe depuis la boîte à outils.';
+  else if(!roster().length) hint.textContent='Aucun membre pour cette équipe sur cette période.';
+  else hint.textContent='Les équipes, les membres et les périodes se gèrent depuis la boîte à outils.';
+}
+function renderLists(){
+  document.getElementById('skillsList').innerHTML=store.skillMatrix.skills.length?store.skillMatrix.skills.map(s=>`
+    <div class="item"><div class="item-name">${esc(s.emoji)} ${esc(s.name)}</div>
+    <button class="icon-btn" data-delete-skill="${esc(s.id)}" title="Supprimer">✕</button></div>`).join(''):'<div class="sub">Aucune compétence.</div>';
+}
+function teamPeople(){
+  if(!store.selectedTeamId) return [];
+  return store.people
+    .filter(p=>p.teamId===store.selectedTeamId)
+    .sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
+}
+function pickedFrom(list, all){
+  if(!Array.isArray(list)) return all;
+  const on=new Set(list);
+  return all.filter(item=>on.has(item.id));
+}
+function pickedPeople(){ return pickedFrom(store.skillMatrix.trackPeople, teamPeople()); }
+function pickedSkills(){ return pickedFrom(store.skillMatrix.trackSkills, store.skillMatrix.skills); }
+function periodsInTime(){
+  return store.periods.map((period,index)=>({period,index})).sort((a,b)=>{
+    const ad=a.period.startDate||a.period.endDate||'';
+    const bd=b.period.startDate||b.period.endDate||'';
+    if(ad!==bd) return ad<bd?-1:1;
+    return a.index-b.index;
+  }).map(item=>item.period);
+}
+function storedScore(periodId, personId, skillId){
+  const value=Number(store.skillMatrix.ratings[periodId]?.[personId]?.[skillId]);
+  return Number.isInteger(value)&&value>=1&&value<=10?value:null;
+}
+function renderPicks(){
+  const people=teamPeople();
+  const skills=store.skillMatrix.skills;
+  const peopleOn=new Set(pickedPeople().map(p=>p.id));
+  const skillsOn=new Set(pickedSkills().map(s=>s.id));
+  document.getElementById('peoplePicks').innerHTML=people.length
+    ? people.map(p=>`<button type="button" class="pick${peopleOn.has(p.id)?' is-on':''}" data-person-pick="${esc(p.id)}" aria-pressed="${peopleOn.has(p.id)?'true':'false'}">${esc(p.name)}</button>`).join('')
+    : '<span class="pick-empty">Aucun membre dans cette équipe.</span>';
+  document.getElementById('skillPicks').innerHTML=skills.length
+    ? skills.map(s=>`<button type="button" class="pick${skillsOn.has(s.id)?' is-on':''}" data-skill-pick="${esc(s.id)}" aria-pressed="${skillsOn.has(s.id)?'true':'false'}">${esc(s.emoji)} ${esc(s.name)}</button>`).join('')
+    : '<span class="pick-empty">Aucune compétence. Ajoutez-en dans Saisir des notes.</span>';
+}
+function destroyTrackChart(){
+  if(trackChart){ trackChart.destroy(); trackChart=null; }
+  if(teamAvgChart){ teamAvgChart.destroy(); teamAvgChart=null; }
+}
+function teamPeriodAverage(periodId, skills){
+  const scores=[];
+  teamPeople().forEach(person=>{
+    skills.forEach(skill=>{
+      const value=storedScore(periodId,person.id,skill.id);
+      if(value!=null) scores.push(value);
+    });
+  });
+  if(!scores.length) return null;
+  const avg=Math.round((scores.reduce((sum,value)=>sum+value,0)/scores.length)*10)/10;
+  const range=scores.length<2?null:{min:Math.min(...scores),max:Math.max(...scores)};
+  return {avg,range,count:scores.length};
+}
+function teamChartMessage(){
+  if(!store.selectedTeamId||!store.teams.some(t=>t.id===store.selectedTeamId)) return 'Ajoutez une équipe depuis la boîte à outils.';
+  if(!teamPeople().length) return 'Ajoutez des membres depuis la boîte à outils.';
+  if(!store.skillMatrix.skills.length) return 'Ajoutez des compétences dans Saisir des notes.';
+  if(!pickedSkills().length) return 'Choisissez au moins une compétence.';
+  if(typeof Chart==='undefined') return "Chart.js n'a pas pu être chargé. Vérifiez la connexion, puis rechargez la page.";
+  const skills=pickedSkills();
+  const hasPoint=periodsInTime().some(period=>teamPeriodAverage(period.id,skills));
+  if(!hasPoint) return 'Pas encore de notes à suivre pour l\'équipe.';
+  return '';
+}
+function paintChartEmpty(wrap, empty, message){
+  wrap.classList.toggle('is-empty', !!message);
+  empty.hidden=!message;
+  if(message) empty.textContent=message;
+}
+function trackingMessage(){
+  if(!store.selectedTeamId||!store.teams.some(t=>t.id===store.selectedTeamId)) return 'Ajoutez une équipe depuis la boîte à outils.';
+  if(!teamPeople().length) return 'Ajoutez des membres depuis la boîte à outils.';
+  if(!store.skillMatrix.skills.length) return 'Ajoutez des compétences dans Saisir des notes.';
+  if(!pickedPeople().length||!pickedSkills().length) return 'Choisissez au moins une personne et une compétence.';
+  if(typeof Chart==='undefined') return "Chart.js n'a pas pu être chargé. Vérifiez la connexion, puis rechargez la page.";
+  const periods=periodsInTime();
+  const hasPoint=pickedPeople().some(person=>pickedSkills().some(skill=>periods.some(period=>storedScore(period.id,person.id,skill.id)!=null)));
+  if(!hasPoint) return 'Pas encore de notes à suivre pour cette sélection.';
+  return '';
+}
+function renderTracking(){
+  renderPicks();
+  const wrap=document.getElementById('trackWrap');
+  const empty=document.getElementById('trackEmpty');
+  destroyTrackChart();
+  const message=trackingMessage();
+  paintChartEmpty(wrap, empty, message);
+  if(!message){
+  const periods=periodsInTime();
+  const people=pickedPeople();
+  const skills=pickedSkills();
+  const datasets=[];
+  people.forEach((person,personIndex)=>{
+    skills.forEach((skill,skillIndex)=>{
+      const singleSkill=skills.length===1;
+      const singlePerson=people.length===1;
+      const color=singlePerson&&!singleSkill
+        ? SKILL_COLORS[skillIndex%SKILL_COLORS.length]
+        : PEOPLE_COLORS[personIndex%PEOPLE_COLORS.length];
+      const label=singleSkill?person.name:singlePerson?`${skill.emoji} ${skill.name}`:`${person.name} · ${skill.emoji} ${skill.name}`;
+      datasets.push({
+        label,
+        data:periods.map(period=>storedScore(period.id,person.id,skill.id)),
+        borderColor:color,
+        backgroundColor:color,
+        borderDash:singleSkill||singlePerson?[]:LINE_DASHES[skillIndex%LINE_DASHES.length],
+        fill:false,
+        tension:0,
+        spanGaps:true,
+        pointRadius:4,
+        pointHoverRadius:6,
+        borderWidth:2.5
+      });
+    });
+  });
+  trackChart=new Chart(document.getElementById('trackChart'),{
+    type:'line',
+    data:{labels:periods.map(p=>p.label),datasets},
+    plugins:[yScaleBandsPlugin],
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        yScaleBands:true,
+        legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,padding:14,font:{size:12}}},
+        tooltip:{callbacks:{label(ctx){
+          if(ctx.parsed.y==null||Number.isNaN(ctx.parsed.y)) return '';
+          return ` ${ctx.dataset.label} · ${ctx.parsed.y} / 10`;
+        }}}
+      },
+      scales:{
+        x:{grid:{color:'#eef2f7'},ticks:{color:'#68768b',maxRotation:40,autoSkip:true}},
+        y:{min:0,max:10,ticks:{color:'#68768b',stepSize:1},grid:{color:'#eef2f7'}}
+      }
+    }
+  });
+  requestAnimationFrame(()=>{ if(trackChart) trackChart.resize(); });
+  }
+  renderTeamAverage();
+}
+function renderTeamAverage(){
+  const wrap=document.getElementById('teamWrap');
+  const empty=document.getElementById('teamEmpty');
+  const message=teamChartMessage();
+  paintChartEmpty(wrap, empty, message);
+  if(message) return;
+  const periods=periodsInTime();
+  const skills=pickedSkills();
+  const points=periods.map(period=>teamPeriodAverage(period.id, skills));
+  teamAvgChart=new Chart(document.getElementById('teamAvgChart'),{
+    type:'line',
+    data:{
+      labels:periods.map(period=>period.label),
+      datasets:[{
+        label:'Équipe',
+        data:points.map(point=>point?point.avg:null),
+        borderColor:'#2f6fed',
+        backgroundColor:'rgba(47,111,237,.12)',
+        fill:false,
+        tension:0,
+        spanGaps:true,
+        pointRadius:5,
+        pointHoverRadius:7,
+        borderWidth:2.5
+      }]
+    },
+    plugins:[yScaleBandsPlugin, errorBarsPlugin],
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        yScaleBands:true,
+        errorBars:{ranges:points.map(point=>point?point.range:null),color:'rgba(47,111,237,.5)',lineWidth:1.5,capWidth:5},
+        legend:{display:false},
+        tooltip:{callbacks:{label(ctx){
+          const point=points[ctx.dataIndex];
+          if(!point) return '';
+          const range=point.range?`  ·  min ${point.range.min} — max ${point.range.max}`:'';
+          return ` Moyenne  ·  ${point.avg} / 10  (${point.count} note${point.count>1?'s':''})${range}`;
+        }}}
+      },
+      scales:{
+        x:{grid:{color:'#eef2f7'},ticks:{color:'#68768b',maxRotation:40,autoSkip:true}},
+        y:{min:0,max:10,ticks:{color:'#68768b',stepSize:1},grid:{color:'#eef2f7'}}
+      }
+    }
+  });
+  requestAnimationFrame(()=>{ if(teamAvgChart) teamAvgChart.resize(); });
+}
+function applyTab(tab){
+  const hasPeriod=store.periods.length>0;
+  if(!hasPeriod && !OPEN_TABS.has(tab)) tab='fonctionnement';
+  currentTab=tab;
+  document.querySelectorAll('.tab[data-tab]').forEach(btn=>{
+    const id=btn.dataset.tab;
+    const locked=!hasPeriod && !OPEN_TABS.has(id);
+    const selected=id===currentTab;
+    btn.classList.toggle('is-locked', locked);
+    btn.disabled=locked;
+    btn.setAttribute('aria-selected', selected?'true':'false');
+    btn.tabIndex=selected?0:-1;
+    btn.title=locked?'Ajoutez une période pour déverrouiller':'';
+  });
+  document.querySelectorAll('.tab-panel').forEach(panel=>{
+    panel.hidden=panel.dataset.panel!==currentTab;
+  });
+  const onSaisies=currentTab==='saisies';
+  const onSuivi=currentTab==='suivi';
+  document.querySelector('.context-bar').hidden=!onSaisies && !onSuivi;
+  document.getElementById('periodSelect').hidden=!onSaisies;
+  const hasTeam=!!store.selectedTeamId && store.teams.some(t=>t.id===store.selectedTeamId);
+  const hint=document.getElementById('contextHintBar');
+  if((onSaisies||onSuivi)&&!hasPeriod){
+    hint.hidden=false;
+    hint.textContent='Ajoutez une période depuis la boîte à outils';
+  }else if((onSaisies||onSuivi)&&!hasTeam){
+    hint.hidden=false;
+    hint.textContent='Ajoutez une équipe depuis la boîte à outils';
+  }else hint.hidden=true;
+  document.getElementById('saisiesGrid').hidden=!hasPeriod||!hasTeam;
+}
+function renderSaisie(){
+  renderFilter();
+  renderPathFilter();
+  renderMatrix();
+  renderScoreList();
+  renderChart();
+  renderPath();
+  renderTeamPath();
+  requestAnimationFrame(()=>{ if(chart) chart.resize(); });
+}
+function render(){
+  renderContext();
+  applyTab(currentTab);
+  renderLists();
+  if(currentTab==='saisies') renderSaisie();
+  if(currentTab==='suivi') renderTracking();
+  else destroyTrackChart();
+  save();
+}
+function setTrack(key, value){
+  store.skillMatrix[key]=value;
+  save();
+  renderTracking();
+}
+function toggleTrack(key, id, allIds){
+  const current=Array.isArray(store.skillMatrix[key])?store.skillMatrix[key].slice():allIds.slice();
+  const i=current.indexOf(id);
+  if(i>=0) current.splice(i,1);
+  else current.push(id);
+  setTrack(key, current.length===allIds.length?null:current);
+}
+
+buildChart(); render();
+
+document.getElementById('personFilter').addEventListener('change',e=>{store.skillMatrix.filter=e.target.value;renderScoreList();renderChart();save()});
+document.getElementById('pathPerson').addEventListener('change',e=>{store.skillMatrix.pathPerson=e.target.value;renderPath();save()});
+function applyRating(input, commit){
+  const raw=String(input.value).trim();
+  if(raw===''){
+    writeRating(input.dataset.person, input.dataset.skill, null);
+    input.value='';
+    input.className='rating';
+    return true;
+  }
+  const v=normalizeRating(raw);
+  if(v==null){
+    if(!commit) return false;
+    writeRating(input.dataset.person, input.dataset.skill, null);
+    input.value='';
+    input.className='rating';
+    return true;
+  }
+  writeRating(input.dataset.person, input.dataset.skill, v);
+  input.value=v;
+  input.className=`rating ${ratingZoneClass(v)}`;
+  return true;
+}
+function refreshScores(){
+  save();renderScoreList();renderChart();renderPath();renderTeamPath();
+}
+document.getElementById('matrixBody').addEventListener('change',e=>{
+  if(!e.target.classList.contains('rating'))return;
+  applyRating(e.target, true);
+  refreshScores();
+});
+document.getElementById('matrixBody').addEventListener('input',e=>{
+  if(!e.target.classList.contains('rating'))return;
+  if(!applyRating(e.target, false)) return;
+  refreshScores();
+});
+document.getElementById('matrixBody').addEventListener('click',e=>{
+  if(!e.target.closest('[data-clear-table]')) return;
+  const period=store.periods.find(p=>p.id===store.selectedPeriodId);
+  const label=period?period.label:'cette période';
+  if(!confirm(`Effacer toutes les notes du tableau pour ${label} ?`)) return;
+  clearCurrentTable();
+  render();
+});
+
+const skillsModal=document.getElementById('skillsModal');
+function openModal(m,focus){m.hidden=false;setTimeout(()=>document.getElementById(focus)?.focus(),0)}
+function closeModal(m){m.hidden=true}
+document.getElementById('manageSkills').onclick=()=>openModal(skillsModal,'skillEmoji');
+document.querySelectorAll('[data-close]').forEach(x=>x.addEventListener('click',()=>closeModal(x.closest('.modal'))));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && !skillsModal.hidden) closeModal(skillsModal);
+});
+document.querySelector('.tabs').addEventListener('click', event=>{
+  const btn=event.target.closest('[data-tab]');
+  if(!btn||btn.disabled) return;
+  currentTab=btn.dataset.tab;
+  render();
+});
+document.querySelector('.tabs').addEventListener('keydown', event=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+  const tabs=[...document.querySelectorAll('.tab[data-tab]')].filter(t=>!t.disabled);
+  const i=tabs.findIndex(t=>t.dataset.tab===currentTab);
+  if(i<0) return;
+  event.preventDefault();
+  let next=i;
+  if(event.key==='ArrowRight') next=(i+1)%tabs.length;
+  if(event.key==='ArrowLeft') next=(i-1+tabs.length)%tabs.length;
+  if(event.key==='Home') next=0;
+  if(event.key==='End') next=tabs.length-1;
+  currentTab=tabs[next].dataset.tab;
+  render();
+  tabs[next].focus();
+});
+document.getElementById('panel-suivi').addEventListener('click', event=>{
+  const person=event.target.closest('[data-person-pick]');
+  if(person){
+    toggleTrack('trackPeople', person.dataset.personPick, teamPeople().map(p=>p.id));
+    return;
+  }
+  const skill=event.target.closest('[data-skill-pick]');
+  if(skill) toggleTrack('trackSkills', skill.dataset.skillPick, store.skillMatrix.skills.map(s=>s.id));
+});
+document.getElementById('peopleAll').onclick=()=>setTrack('trackPeople', null);
+document.getElementById('peopleNone').onclick=()=>setTrack('trackPeople', []);
+document.getElementById('skillsAll').onclick=()=>setTrack('trackSkills', null);
+document.getElementById('skillsNone').onclick=()=>setTrack('trackSkills', []);
+document.getElementById('periodSelect').addEventListener('change',e=>{store.selectedPeriodId=e.target.value||null;render()});
+document.getElementById('teamSelect').addEventListener('change',e=>{
+  store.selectedTeamId=e.target.value||null;
+  const people=teamPeople();
+  if(Array.isArray(store.skillMatrix.trackPeople)&&!people.some(p=>store.skillMatrix.trackPeople.includes(p.id))){
+    store.skillMatrix.trackPeople=null;
+  }
+  render();
+});
+
+document.getElementById('skillForm').addEventListener('submit',e=>{
+  e.preventDefault(); const emoji=document.getElementById('skillEmoji').value.trim(),name=document.getElementById('skillName').value.trim(); if(!emoji||!name)return;
+  const id=LeadStore.uid(); store.skillMatrix.skills.push({id,emoji,name});
+  e.target.reset(); render(); document.getElementById('skillEmoji').focus();
+});
+document.getElementById('skillsList').addEventListener('click',e=>{
+  const id=e.target.dataset.deleteSkill;if(!id)return;
+  const s=store.skillMatrix.skills.find(x=>x.id===id);if(!confirm(`Supprimer ${s?.emoji||''} ${s?.name||'cette compétence'} ?`))return;
+  store.skillMatrix.skills=store.skillMatrix.skills.filter(x=>x.id!==id);
+  Object.values(store.skillMatrix.ratings).forEach(byPerson=>Object.values(byPerson).forEach(r=>delete r[id]));
+  render();
+});
+</script>
+</body>
+</html>

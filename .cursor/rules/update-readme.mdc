@@ -1,0 +1,30 @@
+---
+description: Mettre à jour le README quand un changement de code change ce qu'il décrit
+alwaysApply: true
+---
+
+# Garder le README à jour
+
+Quand tu modifies le code de ce dépôt, mets à jour `README.md` dans le même changement si le README deviendrait faux ou incomplet.
+
+Mets-le à jour quand le changement touche :
+
+- ce que fait un outil, ou l'ajout ou le retrait d'un outil
+- un numéro de version affiché dans l'interface
+- la façon d'ouvrir ou d'utiliser l'application
+- l'endroit où les données sont stockées, le contenu de l'export JSON, ou ce qui reste en local
+
+Laisse le README tel quel si le changement ne modifie pas ces faits (un ajustement de style, un correctif au même comportement, un renommage interne).
+
+## Comment l'écrire
+
+- Français simple et facile à lire. Phrases courtes. Mots courants.
+- Garde la forme actuelle : une intro courte, le tableau des outils, le mode d'emploi, et la note sur les données.
+- Garde les emojis et la mise en forme légère. Ne rallonge pas le fichier.
+- Décris seulement ce que le code fait vraiment.
+
+```markdown
+<!-- ❌ Un changement ajoute un outil, et le README liste encore seulement les anciens. -->
+
+<!-- ✅ Le tableau des outils gagne une ligne : emoji, lien, version, et une phrase simple. -->
+```
